@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>simplify — Understand the news, not just read it.</title>
+<meta name="description" content="A calm daily brief that explains why the news matters, who it affects, and what happens next — with an AI tutor for every story.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     SHARED RESET — applies to both the landing experience and the
+     product; page-specific tokens/resets live scoped under
+     #page-landing and #page-app below. Generic element resets use
+     :where() so they don't outrank class-based rules elsewhere in
+     the file — an ID-scoped `#page-app button{...}` would otherwise
+     beat `.ob-btn{...}` on specificity and silently break it.
+     ============================================================ */
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ scroll-behavior:auto; margin:0; }
+  /* overflow-x:hidden lives on body (the true root), not on a nested
+     div — nested elements with any overflow value become their own
+     scroll-clipping context, which breaks position:sticky for any
+     pinned-scroll descendants. body/html are specially propagated to
+     the real viewport by the browser, so this is safe here. */
+  body{ margin:0; overflow-x:hidden; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  ::selection{ background:#4F46E5; color:#fff; }
+
+  /* ============================================================
+     LANDING — scoped under #page-landing
+     ============================================================ */
+  /* ============================================================
+     TOKENS & ATMOSPHERICS
+     ============================================================ */
+  #page-landing{
+    --black:#0A0A0A;
+    --white:#FAFAFA;
+    --primary:#4F46E5;
+    --primary-soft: rgba(79,70,229,0.14);
+    --muted:#6B7280;
+    --line-on-dark: rgba(255,255,255,0.10);
+    --line-on-light: rgba(10,10,10,0.08);
+
+    --font-display:'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* Handcrafted luxury easing curves for fluid motion */
+    --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  #page-landing{
+    display:block;
+    background:var(--black);
+    color:var(--white);
+    font-family:var(--font-body);
+  }
+  #page-landing.hidden{ display:none; }
+
+  :where(#page-landing) a{ color:inherit; }
+  :where(#page-landing) button{ font-family:inherit; }
+
+  :where(#page-landing) :focus-visible{ outline:2px solid var(--primary); outline-offset:4px; border-radius:2px; }
+
+  .container{ max-width:1200px; margin:0 auto; padding:0 2rem; }
+
+  :where(#page-landing) h1,:where(#page-landing) h2,:where(#page-landing) h3,:where(#page-landing) h4{ font-family:var(--font-display); margin:0; font-weight:700; letter-spacing:-0.02em; }
+
+  /* Film Aesthetics: Clean grain layer & extremely light edge vignette */
+  .film-grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 90; opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  .vignette-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 89;
+    background: radial-gradient(circle at center, transparent 70%, rgba(10, 10, 10, 0.25) 100%);
+  }
+
+  /* ============================================================
+     FIXED CHROME — progress bar + persistent premium wordmark
+     ============================================================ */
+  #progress-track{
+    position:fixed; top:0; left:0; width:100%; height:2px; z-index:100;
+    background:transparent; pointer-events:none;
+  }
+  #progress-bar{
+    height:100%; width:0%; background:var(--primary);
+    transform-origin:left; box-shadow:0 0 10px rgba(79,70,229,0.5);
+    transition: width 0.1s linear;
+  }
+
+  /* Persistent, high-visibility brand mark that dynamically adapts contrast */
+  #brand-mark{
+    position:fixed; top:1.75rem; left:2rem; z-index:99;
+    font-family:var(--font-display); font-weight:700; font-size:0.95rem;
+    letter-spacing:-0.01em; color:var(--white);
+    opacity:0; transform:translateY(-6px);
+    transition:opacity .6s var(--ease-lux), transform .6s var(--ease-lux), color .4s ease;
+    pointer-events:none;
+  }
+  #brand-mark.visible{ opacity:1; transform:translateY(0); }
+  #brand-mark.on-light{ color:var(--black); }
+  #brand-mark::after{
+    content:''; display:inline-block; width:5px; height:5px; border-radius:50%;
+    background:var(--primary); margin-left:2px; vertical-align:super;
+  }
+
+  /* ============================================================
+     ACT 1 — THE QUESTION
+     ============================================================ */
+  #act1{
+    position:relative; height:100svh; width:100%;
+    background:var(--black);
+    display:flex; align-items:center; justify-content:center;
+    text-align:center; overflow:hidden;
+  }
+  .act1-inner{ padding:0 1.5rem; max-width:1000px; }
+  .act1-q{
+    font-size:clamp(2rem, 5.4vw, 4.6rem);
+    line-height:1.12; font-weight:700; color:var(--white);
+    opacity:0; transform:translateY(18px);
+    animation:fadeUp 1.2s var(--ease-lux) forwards;
+    animation-delay:.25s;
+  }
+  .act1-a{
+    margin-top:1.6rem; font-family:var(--font-body);
+    font-size:clamp(1rem, 1.6vw, 1.25rem); color:var(--muted); font-weight:500;
+    opacity:0; transform:translateY(10px);
+    animation:fadeUp 1s var(--ease-lux) forwards;
+    animation-delay:3.1s;
+  }
+  .act1-scroll{
+    position:absolute; bottom:3rem; left:50%; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:.6rem;
+    opacity:0; animation:fadeIn 1s ease forwards; animation-delay:4.9s;
+  }
+  .act1-scroll span{ font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .act1-scroll svg{ animation:bob 2s ease-in-out infinite; animation-delay:5.5s; }
+
+  @keyframes fadeUp{ to{ opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn{ to{ opacity:1; } }
+  @keyframes bob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(6px);} }
+
+  /* ============================================================
+     PINNED SCROLLYTELLING SCAFFOLD — Continuous Seamless Flow
+     ============================================================ */
+  .pin-wrap{ position:relative; }
+  .pin-inner{
+    position:sticky; top:0; height:100svh; width:100%;
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
+  }
+
+  /* Seamless Background Track to bridge Acts smoothly */
+  #cinematic-bg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: #0A0A0A; transition: background-color 0.1s linear;
+  }
+
+  /* ============================================================
+     ACT 2 — THE FRICTION
+     ============================================================ */
+  #act2-wrap{ height:680vh; }
+
+  .a2-headline{
+    position:absolute; top:12%; left:50%; transform:translate(-50%,0);
+    width:90%; max-width:780px; text-align:center;
+    font-size:clamp(1.5rem, 3.4vw, 2.6rem); color:var(--white); font-weight:700;
+    opacity:0; will-change:opacity, transform;
+    pointer-events:none; z-index: 10;
+  }
+
+  .chip-field{ position:absolute; inset:0; }
+  .chip{
+    position:absolute; opacity:0; will-change:opacity, transform;
+    display:flex; align-items:center; gap:.55rem;
+    padding:.7rem 1rem; border-radius:.65rem;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.12);
+    backdrop-filter:blur(6px);
+    font-size:.82rem; font-weight:600; color:rgba(255,255,255,0.88);
+    white-space:nowrap;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+  .chip .dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+
+  .a2-bubble{
+    position:absolute; opacity:0; will-change:opacity, transform;
+    padding:.55rem .9rem; border-radius:1rem 1rem 1rem .2rem;
+    background:var(--primary); color:#fff; font-size:.78rem; font-weight:600;
+    box-shadow:0 8px 24px rgba(79,70,229,0.4);
+  }
+
+  .a2-mark{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
+    font-family:var(--font-display); font-weight:800; letter-spacing:-0.02em;
+    font-size:clamp(2.2rem,5vw,4rem); color:var(--white); opacity:0;
+    will-change:opacity, transform; text-align:center;
+  }
+  .a2-mark::after{
+    content:''; position:absolute; left:50%; bottom:-14px; transform:translateX(-50%);
+    width:44px; height:3px; background:var(--primary); border-radius:2px;
+  }
+
+  .a2-line{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:88%; max-width:760px; text-align:center;
+    font-size:clamp(1.6rem, 3.6vw, 2.9rem); font-weight:700; opacity:0;
+    will-change:opacity, transform;
+  }
+  .a2-line.on-dark{ color:var(--white); }
+  .a2-line.on-light{ color:var(--black); }
+
+  /* ============================================================
+     ACT 2 — THE PROBLEM STRIP (comic-inspired, typographic — no
+     illustrated figure; the reader supplies the face)
+     ============================================================ */
+  #act2-wrap{ height:620vh; background:var(--black); }
+
+  .comic-chrome{
+    position:absolute; top:2.2rem; left:5vw; right:5vw; z-index:20;
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:rgba(255,255,255,0.4);
+  }
+
+  .comic-stage{
+    position:relative; width:min(640px, 88vw); height:min(56vh, 460px);
+  }
+  .comic-panel{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:1.5rem;
+    opacity:0; transform:translateY(22px) scale(.97);
+    will-change:opacity, transform; pointer-events:none;
+  }
+  .panel-tag{
+    display:inline-flex; align-items:center; font-size:.72rem; font-weight:700;
+    letter-spacing:.04em; color:#0A0A0A; background:#F3D93B;
+    padding:.4rem .8rem; border-radius:.3rem; transform:rotate(-1deg);
+    box-shadow:0 6px 16px rgba(0,0,0,0.25);
+  }
+  .panel-caption{ font-size:.92rem; color:rgba(255,255,255,0.55); font-weight:500; }
+  .panel-caption em{ color:var(--white); font-style:normal; font-weight:700; }
+
+  /* Panel 0 — newsprint clipping */
+  .panel-clip{
+    background:#F4F1E8; color:#111; border-radius:.35rem; padding:1.5rem 1.7rem;
+    width:100%; box-shadow:0 25px 60px rgba(0,0,0,0.35); border:1px solid rgba(0,0,0,0.06);
+  }
+  .clip-kicker{ font-family:var(--font-display); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6B5E3C; margin-bottom:.6rem; border-bottom:1px solid rgba(0,0,0,0.15); padding-bottom:.5rem; }
+  .clip-headline{ font-family:var(--font-display); font-size:clamp(1.15rem,2.2vw,1.55rem); font-weight:700; line-height:1.28; letter-spacing:-0.01em; margin-bottom:.6rem; }
+  .clip-dek{ font-size:.85rem; color:#4B4636; line-height:1.5; }
+
+  /* Panel 1 — jargon */
+  .panel-jargon{ display:flex; flex-wrap:wrap; gap:.6rem; max-width:520px; }
+  .jargon-word{
+    font-size:clamp(.95rem,1.6vw,1.2rem); font-weight:700; color:var(--white);
+    background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.14);
+    padding:.55rem 1rem; border-radius:.5rem; text-decoration:underline;
+    text-decoration-color:#F3D93B; text-decoration-thickness:2px; text-underline-offset:4px;
+  }
+
+  /* Panel 2 — question bubbles */
+  .panel-bubbles{ display:flex; flex-direction:column; gap:.7rem; align-items:flex-start; }
+  .q-bubble{
+    position:relative; font-size:1rem; font-weight:600; color:#111;
+    background:var(--white); padding:.75rem 1.1rem; border-radius:1rem 1rem 1rem .25rem;
+    box-shadow:0 10px 26px rgba(0,0,0,0.3);
+  }
+  .q-bubble.b2{ margin-left:2.2rem; }
+  .q-bubble.b3{ margin-left:1rem; }
+
+  /* Panel 3 — the big question */
+  .panel-big-q{
+    font-family:var(--font-display); font-weight:800; letter-spacing:-0.03em;
+    font-size:clamp(2rem,4.6vw,3.4rem); line-height:1.14; color:var(--white); max-width:560px;
+  }
+
+  /* Panel 4 — overwhelm */
+  .panel-overwhelm{ display:flex; flex-wrap:wrap; gap:.55rem; max-width:520px; }
+  .ow-chip{
+    font-size:.82rem; font-weight:600; color:rgba(255,255,255,0.65);
+    background:rgba(255,255,255,0.05); border:1px dashed rgba(255,255,255,0.2);
+    padding:.5rem .9rem; border-radius:999px;
+  }
+
+  .comic-dots{
+    position:absolute; bottom:9vh; left:50%; transform:translateX(-50%); z-index:20;
+    display:flex; gap:.5rem;
+  }
+  .comic-dots span{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); transition:all .3s ease; }
+  .comic-dots span.is-active{ width:20px; border-radius:5px; background:#F3D93B; }
+
+  @media(max-width:720px){
+    .comic-chrome{ top:1.4rem; left:1.25rem; right:1.25rem; font-size:.58rem; }
+    .comic-stage{ width:92vw; height:52vh; }
+    .panel-clip{ padding:1.1rem 1.2rem; }
+    .panel-big-q{ font-size:clamp(1.7rem,8vw,2.6rem); }
+    .jargon-word{ font-size:.85rem; padding:.45rem .8rem; }
+    .comic-dots{ bottom:6.5vh; }
+  }
+
+  /* ============================================================
+     ACT 3 — THE REVEAL
+     ============================================================ */
+  #act3-wrap{ height:480vh; }
+  
+  .a3-ambient{
+    position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(650px 650px at 50% 42%, var(--primary-soft), transparent 70%);
+    opacity:0; transition:opacity .8s ease;
+  }
+
+  .product-stage{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    opacity:0; will-change:opacity, transform; z-index: 10;
+  }
+  .product-float{ animation:float 6s ease-in-out infinite; }
+  @keyframes float{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-8px);} }
+
+  /* Depth stack — three cards fanned around the hero mockup, showing
+     the same story at three reading depths at once. */
+  .depth-stack{ position:relative; display:flex; align-items:center; justify-content:center; }
+  .depth-card-side{
+    position:absolute; width:min(232px, 26vw); background:#FFFFFF; border-radius:1rem;
+    border:1px solid rgba(10,10,10,0.08); padding:1.35rem 1.5rem;
+    box-shadow:0 25px 55px rgba(10,10,10,0.14); z-index:1;
+  }
+  .depth-card-side.left{ left:-2%; transform:rotate(-6deg) translateY(14px) scale(.9); }
+  .depth-card-side.right{ right:-2%; transform:rotate(6deg) translateY(20px) scale(.86); }
+  .depth-card-label{
+    display:inline-flex; font-size:.66rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--primary); background:var(--primary-soft); padding:.3rem .6rem; border-radius:.35rem; margin-bottom:.7rem;
+  }
+  .depth-card-headline{ font-family:var(--font-display); font-weight:700; font-size:1rem; letter-spacing:-0.02em; line-height:1.3; color:var(--black); margin-bottom:.6rem; }
+  .depth-card-line{ font-size:.8rem; color:#4B5563; line-height:1.5; }
+  .depth-card-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.4rem; }
+  .depth-card-list li{ font-size:.78rem; font-weight:600; color:#374151; padding-left:.9rem; position:relative; }
+  .depth-card-list li::before{ content:''; position:absolute; left:0; top:.42em; width:5px; height:5px; border-radius:50%; background:var(--primary); }
+
+  /* Curved annotations explaining the card — same hand-marked-note
+     language as the comic strip's sticky tags, in miniature. */
+  .card-notes{ position:absolute; inset:0; pointer-events:none; z-index:15; }
+  .card-note{
+    position:absolute; display:flex; align-items:flex-start; gap:.4rem;
+    opacity:0; will-change:opacity, transform;
+  }
+  .card-note-label{
+    display:inline-block; font-size:.74rem; font-weight:700; color:#141414;
+    background:#F3D93B; padding:.4rem .65rem; border-radius:.35rem; line-height:1.32;
+    max-width:168px; box-shadow:0 8px 18px rgba(0,0,0,0.18);
+  }
+  .card-note-arrow{ color:#1F2937; opacity:.6; flex-shrink:0; }
+
+  .note-1{ top:22%; left:5%; }
+  .note-1 .arrow-1{ transform:rotate(-8deg); }
+
+  .note-2{ top:38%; right:3%; flex-direction:row-reverse; text-align:right; }
+  .note-2 .arrow-2{ transform:scaleX(-1) rotate(-8deg); }
+
+  .note-3{ top:59%; left:4%; }
+  .note-3 .arrow-3{ transform:rotate(4deg); }
+
+  .note-4{ top:75%; right:3%; flex-direction:row-reverse; text-align:right; }
+  .note-4 .arrow-4{ transform:scaleX(-1) rotate(6deg); }
+
+  .note-5{ bottom:3%; left:9%; flex-direction:column-reverse; align-items:flex-start; }
+  .note-5 .arrow-5{ transform:scaleY(-1) rotate(12deg); }
+
+  @media(max-width:1080px){ .card-notes{ display:none; } }
+
+  /* Clean, Refined UI Mockup */
+  .mockup{
+    width:min(42vw, 560px); border-radius:1.15rem; overflow:hidden; position:relative; z-index:2;
+    background:#FFFFFF; border:1px solid rgba(10,10,10,0.08);
+    box-shadow: 0 30px 90px -20px rgba(10,10,10,0.20), 0 0 0 1px rgba(10,10,10,0.04), 0 12px 32px -10px rgba(79,70,229,0.08);
+  }
+  .mockup-body{ padding:clamp(1.1rem,2vw,1.7rem); }
+  .mockup-headline{ font-size:clamp(1.15rem,1.8vw,1.5rem) !important; }
+  .mockup-dek{ font-size:.82rem !important; }
+  .mockup-grid{ gap:9px !important; }
+  .mockup-cell{ padding:.85rem .95rem !important; }
+  .mockup-cell .v{ font-size:.78rem !important; }
+  .mockup-term{ font-size:.72rem !important; }
+  .mockup-chrome{
+    display:flex; align-items:center; justify-content:space-between; padding:.75rem 1.2rem;
+    background:#F8F8FA; border-bottom:1px solid rgba(10,10,10,0.06);
+  }
+  .mockup-chrome-left { display:flex; align-items:center; gap:.45rem; }
+  .mockup-chrome .d{ width:9px; height:9px; border-radius:50%; background:rgba(10,10,10,0.16); }
+  .mockup-chrome .tab{
+    margin-left:1.2rem; font-size:.72rem; font-weight:600; color:#4B5563;
+    display:flex; align-items:center; gap:.45rem; background:#EAEAEF; padding:.3rem .75rem; border-radius:.4rem;
+  }
+  .mockup-chrome .tab .dot{ width:6px; height:6px; border-radius:50%; background:var(--primary); }
+  .mockup-chrome-right { font-size:.7rem; font-weight:600; color:var(--muted); display:flex; align-items:center; gap:.75rem; }
+
+  .mockup-greeting{ font-size:.82rem; color:var(--muted); font-weight:500; margin-bottom:1.4rem; display:flex; justify-content:space-between; align-items:center; }
+  .mockup-greeting .user-name { font-weight:700; color:var(--black); }
+  
+  .mockup-header-meta { display:flex; align-items:center; gap:.8rem; margin-bottom:.7rem; }
+  .mockup-eyebrow{
+    display:inline-flex; align-items:center; gap:.4rem; font-size:.7rem; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--primary); background:var(--primary-soft); padding:.25rem .55rem; border-radius:.35rem;
+  }
+  .mockup-eyebrow .dot{ width:5px; height:5px; border-radius:50%; background:var(--primary); }
+  .mockup-meta-pill { font-size:.7rem; font-weight:600; color:var(--muted); display:flex; align-items:center; gap:.3rem; background:#F3F4F6; padding:.25rem .55rem; border-radius:.35rem; }
+
+  .mockup-headline{
+    font-family:var(--font-display); font-weight:700; letter-spacing:-0.02em;
+    font-size:clamp(1.4rem,2.5vw,2.1rem); color:var(--black); margin:0 0 .7rem; line-height:1.2;
+  }
+  .mockup-dek{ font-size:.92rem; line-height:1.6; color:#4B5563; margin:0 0 1.3rem; max-width:56ch; }
+  .mockup-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px; background:transparent; margin-bottom:1.2rem;
+  }
+  .mockup-cell{
+    background:#F9FAFB; padding:1.1rem 1.25rem; border-radius:.75rem; border:1px solid rgba(10,10,10,0.04);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: transform .2s ease, border-color .2s ease;
+  }
+  .mockup-cell:hover { transform: translateY(-2px); border-color: rgba(79,70,229,0.2); }
+  .mockup-cell .k{ font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:.45rem; display:flex; align-items:center; gap:.4rem; }
+  .mockup-cell .k svg { color: var(--primary); }
+  .mockup-cell .v{ font-size:.88rem; color:#1F2937; line-height:1.5; font-weight:500; }
+
+  .mockup-terms{
+    display:flex; flex-wrap:wrap; align-items:center; gap:.5rem 1.1rem;
+    background:var(--primary-soft); border:1px solid rgba(79,70,229,0.14); border-radius:.75rem;
+    padding:.8rem 1.1rem; margin-bottom:1.2rem;
+  }
+  .mockup-terms-label{ font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--primary); flex-basis:100%; }
+  .mockup-term{ font-size:.79rem; color:#374151; line-height:1.4; }
+  .mockup-term b{ color:var(--black); font-weight:700; }
+
+  .mockup-ask{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.85rem 1.2rem; border-radius:999px; background:#F3F4F6;
+    border:1px solid rgba(10,10,10,0.06); color:var(--muted); font-size:.85rem; font-weight:500;
+  }
+  .mockup-ask-left { display:flex; align-items:center; gap:.6rem; }
+  .mockup-ask-kbd { font-size:.68rem; font-weight:700; background:#FFFFFF; padding:.15rem .45rem; border-radius:.3rem; border:1px solid #E5E7EB; color:#9CA3AF; }
+
+  .mockup-ask-example{
+    margin-top:.7rem; padding:.9rem 1.1rem; border-radius:.9rem;
+    background:#FAFAFF; border:1px solid rgba(79,70,229,0.12);
+  }
+  .mockup-ask-q{ font-size:.79rem; font-weight:700; color:var(--primary); margin-bottom:.35rem; }
+  .mockup-ask-a{ font-size:.83rem; color:#374151; line-height:1.55; }
+
+  .mockup-footer-row{
+    margin-top:1.2rem; display:flex; align-items:center; justify-content:space-between;
+    font-size:.78rem; font-weight:600; color:#16A34A; padding-top:.8rem; border-top:1px solid #F3F4F6;
+  }
+  .mockup-footer-sources { display:flex; align-items:center; gap:.5rem; color:var(--muted); font-weight:500; font-size:.72rem; }
+  .mockup-footer-sources span { color:#111827; font-weight:600; }
+
+  /* ============================================================
+     ACT 5 — THE ASPIRATION
+     ============================================================ */
+  #act5{
+    position:relative; min-height:100svh; width:100%; background:var(--black);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+    padding:8rem 1.5rem 5rem; z-index: 10;
+  }
+  .a5-inner{ max-width:820px; }
+  .reveal-el{ opacity:0; transform:translateY(22px); transition:opacity 1s var(--ease-lux), transform 1s var(--ease-lux); }
+  .reveal-el.is-visible{ opacity:1; transform:translateY(0); }
+  .a5-line1{ font-size:clamp(1.9rem, 4.6vw, 3.4rem); font-weight:700; color:var(--white); line-height:1.2; }
+  .a5-line2{ margin-top:.5rem; font-size:clamp(1.9rem, 4.6vw, 3.4rem); font-weight:700; color:var(--muted); line-height:1.2; }
+
+  .cta-wrap{ margin-top:3rem; display:inline-block; }
+  .magnetic-btn{
+    position:relative; display:inline-flex; align-items:center; gap:.6rem;
+    padding:1.05rem 2.25rem; border-radius:999px; background:var(--white); color:var(--black);
+    font-weight:700; font-size:1rem; border:none; cursor:pointer;
+    transition:transform .15s var(--ease-out), background .3s ease, box-shadow .3s ease;
+    box-shadow:0 0 0 rgba(79,70,229,0);
+  }
+  .magnetic-btn:hover{ box-shadow:0 12px 35px rgba(79,70,229,0.4); }
+  .magnetic-btn:active{ transform:scale(.96) !important; }
+  .magnetic-btn svg{ transition:transform .3s var(--ease-out); }
+  .magnetic-btn:hover svg{ transform:translateX(3px); }
+
+  .a5-sub{ margin-top:1.1rem; font-size:.85rem; color:var(--muted); }
+
+  :where(#page-landing) footer{
+    border-top:1px solid var(--line-on-dark); padding:1.6rem 1.5rem;
+    display:flex; align-items:center; justify-content:space-between;
+    max-width:1200px; margin:0 auto; font-size:.78rem; color:var(--muted);
+  }
+  footer .fmark{ font-weight:700; color:rgba(255,255,255,0.7); }
+  .footer-region{ background:var(--black); position:relative; z-index:10; }
+
+  /* ============================================================
+     TRANSITION CURTAIN — fades to black before handing off to the
+     real product at simplify-app.html
+     ============================================================ */
+  #transition-curtain {
+    position: fixed; inset: 0; z-index: 300; background: #0A0A0A;
+    opacity: 0; pointer-events: none; transition: opacity 0.6s ease;
+  }
+  #transition-curtain.active { opacity: 1; pointer-events: auto; }
+
+  /* ============================================================
+     MOBILE FALLBACK — simplified, no pinned scroll-scrub
+     ============================================================ */
+  @media (max-width:900px){
+    #cinematic-bg { display:none; }
+    .film-grain, .vignette-overlay { display:none; }
+    .pin-wrap{ height:auto !important; }
+    .pin-inner{ position:relative !important; height:auto !important; padding:5rem 1.25rem; display:block; }
+
+    #act2-inner{ padding:4rem 1.25rem 5rem; background:var(--black); }
+    #act2-wrap{ height:auto !important; }
+    .comic-chrome{ display:none; }
+    .comic-stage{ position:relative !important; height:auto !important; width:100%; display:flex; flex-direction:column; gap:2.4rem; }
+    .comic-panel{ position:relative !important; opacity:1 !important; transform:none !important; pointer-events:auto; }
+    .comic-dots{ display:none; }
+    .a2-mark{ position:relative; top:auto; left:auto; transform:none !important; opacity:1; margin:2.5rem auto; }
+    .a2-line{ position:relative; top:auto; left:auto; transform:none !important; opacity:1; margin:3rem auto; }
+
+    #act3-inner{ padding:4rem 1.25rem 5rem; background:var(--white); }
+    .product-stage{ position:relative; inset:auto; opacity:1; transform:none !important; }
+    .depth-stack{ flex-direction:column; gap:1rem; }
+    .depth-card-side{ position:relative !important; inset:auto; width:100%; transform:none !important; order:2; }
+    .depth-card-side.left{ order:1; }
+    .depth-card-side.right{ order:3; }
+    .mockup{ width:100%; order:1; }
+    .a3-ambient{ display:none; }
+
+
+    .mockup-grid{ grid-template-columns:1fr; }
+    #brand-mark{ display:none; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .act1-q,.act1-a,.act1-scroll,.reveal-el{ animation:none !important; transition:none !important; opacity:1 !important; transform:none !important; }
+    .product-float{ animation:none !important; }
+    .film-grain, .vignette-overlay { display:none; }
+  }
+
+  /* ============================================================
+     PRODUCT — scoped under #page-app
+     ============================================================ */
+  #page-app{
+    --bg:#FAFAFA; --sidebar:#F3F4F6; --surface:#FFFFFF;
+    --border:rgba(10,10,10,0.08); --border-soft:rgba(10,10,10,0.05);
+    --primary:#4F46E5; --primary-soft:rgba(79,70,229,0.08);
+    --ink:#0A0A0A; --muted:#6B7280; --good:#16A34A; --radius:18px;
+  }
+  #page-app{
+    display:none; height:100vh; overflow:hidden;
+    font-family:'Inter',sans-serif; background:var(--bg); color:var(--ink);
+  }
+  #page-app.active{ display:block; }
+  :where(#page-app) h1,:where(#page-app) h2,:where(#page-app) h3,:where(#page-app) .display{font-family:'Manrope',sans-serif; letter-spacing:-0.015em; margin:0;}
+  :where(#page-app) button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  :where(#page-app) a{color:inherit; text-decoration:none;}
+  :where(#page-app) input,:where(#page-app) textarea{font-family:inherit;}
+  :where(#page-app) :focus-visible{outline:2px solid var(--primary); outline-offset:2px; border-radius:6px;}
+  :where(#page-app) ::-webkit-scrollbar{width:8px;} :where(#page-app) ::-webkit-scrollbar-thumb{background:rgba(10,10,10,0.12); border-radius:8px;}
+
+  /* ============ ONBOARDING ============ */
+  #onboarding{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
+  .ob-wrap{ width:100%; max-width:560px; }
+  .ob-brand{ font-weight:800; font-size:15px; letter-spacing:-0.01em; color:var(--primary); margin-bottom:34px; text-align:center; }
+  .ob-step-label{ font-size:12.5px; font-weight:700; color:var(--muted); text-align:center; margin-bottom:10px; }
+  .ob-progress{ display:flex; gap:5px; justify-content:center; margin-bottom:30px; }
+  .ob-progress .seg{ width:34px; height:3px; border-radius:2px; background:var(--border); }
+  .ob-progress .seg.done{ background:var(--primary); }
+  .ob-title{ font-size:26px; font-weight:800; text-align:center; margin-bottom:8px; }
+  .ob-sub{ font-size:14.5px; color:var(--muted); text-align:center; margin-bottom:32px; }
+  .ob-grid{ display:flex; flex-direction:column; gap:10px; margin-bottom:28px; }
+  .ob-grid.two-col{ display:grid; grid-template-columns:1fr 1fr; }
+  .ob-card{
+    display:flex; align-items:center; justify-content:space-between; padding:15px 18px;
+    border-radius:14px; border:1px solid var(--border); background:var(--surface); cursor:pointer;
+    transition:border-color .15s ease, background .15s ease; text-align:left;
+  }
+  .ob-card:hover{ border-color:rgba(79,70,229,0.35); }
+  .ob-card.selected{ border-color:var(--primary); background:var(--primary-soft); }
+  .ob-card-label{ font-size:14px; font-weight:600; }
+  .ob-card-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .ob-radio{ width:18px; height:18px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .ob-card.selected .ob-radio{ border-color:var(--primary); background:var(--primary); }
+  .ob-radio::after{ content:''; width:6px; height:6px; border-radius:50%; background:#fff; opacity:0; }
+  .ob-card.selected .ob-radio::after{ opacity:1; }
+  .ob-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    padding:14px; border-radius:999px; background:var(--ink); color:#fff; font-weight:700; font-size:14.5px;
+    transition:opacity .15s ease, transform .1s ease;
+  }
+  .ob-btn:disabled{ opacity:.3; cursor:not-allowed; }
+  .ob-btn:not(:disabled):active{ transform:scale(.98); }
+  .ob-back{ display:block; margin:14px auto 0; font-size:12.5px; color:var(--muted); font-weight:600; }
+  .ob-loading{ text-align:center; }
+  .ob-check-list{ display:flex; flex-direction:column; gap:10px; margin:26px 0; text-align:left; max-width:280px; margin-left:auto; margin-right:auto; }
+  .ob-check-item{ display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:600; color:var(--border); opacity:.35; transition:all .35s ease; }
+  .ob-check-item.on{ opacity:1; color:var(--ink); }
+  .ob-check-item .dot{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; color:#fff; }
+  .ob-check-item.on .dot{ background:var(--good); border-color:var(--good); }
+
+  /* ============ APP SHELL ============ */
+  #app{ display:none; height:100vh; width:100vw; }
+  #app.active{ display:flex; }
+  #sidebar{ width:224px; flex-shrink:0; background:var(--sidebar); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:20px 14px; }
+  .brand{ font-size:17px; font-weight:800; letter-spacing:-0.02em; padding:6px 10px 22px; }
+  .nav-group{ display:flex; flex-direction:column; gap:2px; }
+  .nav-item{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; font-size:14px; font-weight:600; color:var(--muted); width:100%; text-align:left; transition:background .15s ease, color .15s ease; }
+  .nav-item svg{ flex-shrink:0; width:17px; height:17px; }
+  .nav-item:hover{ background:rgba(10,10,10,0.045); color:var(--ink); }
+  .nav-item.active{ background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(10,10,10,0.05); }
+  .nav-item.active svg{ color:var(--primary); }
+  .sidebar-spacer{ flex:1; }
+  .sidebar-foot{ border-top:1px solid var(--border); padding-top:14px; display:flex; align-items:center; gap:10px; }
+  .avatar{ width:32px; height:32px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+  .sidebar-user .name{ font-size:13.5px; font-weight:700; }
+  .sidebar-user .streak{ font-size:11.5px; color:var(--primary); font-weight:600; }
+
+  #main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  #topbar{ height:64px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:0 28px; border-bottom:1px solid var(--border); }
+  .topbar-date{ font-size:13.5px; color:var(--muted); font-weight:500; }
+  .topbar-right{ display:flex; align-items:center; gap:14px; }
+  .search-pill{ display:flex; align-items:center; gap:8px; background:var(--sidebar); border:1px solid var(--border); border-radius:999px; padding:7px 14px; font-size:13px; color:var(--muted); font-weight:500; min-width:220px; }
+  .search-pill input{ border:none; background:none; outline:none; font-size:13px; color:var(--ink); width:100%; }
+  .streak-chip{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--primary); background:var(--primary-soft); padding:6px 12px; border-radius:999px; }
+
+  #view-container{ flex:1; overflow-y:auto; }
+  .view{ display:none; padding:44px 32px 80px; }
+  .view.active{ display:block; animation:fadeIn .25s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .reading-col{ max-width:680px; margin:0 auto; }
+  .wide-col{ max-width:920px; margin:0 auto; }
+
+  .greeting{ font-size:15px; color:var(--muted); font-weight:500; margin-bottom:4px; }
+  .brief-title{ font-size:clamp(24px,3vw,30px); font-weight:800; margin-bottom:8px; }
+  .brief-meta{ font-size:13.5px; color:var(--muted); font-weight:500; margin-bottom:36px; }
+
+  .story{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 28px; margin-bottom:16px; }
+  .story-top-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .story-tag{ display:inline-flex; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--primary); background:var(--primary-soft); padding:4px 10px; border-radius:6px; }
+  .story-save{ color:var(--muted); transition:color .15s ease; }
+  .story-save.saved{ color:var(--primary); }
+  .story-headline{ font-size:19px; font-weight:700; line-height:1.35; margin-bottom:8px; }
+  .story-summary{ font-size:14.5px; color:#374151; line-height:1.6; margin-bottom:16px; }
+  .story-toggle{ display:flex; align-items:center; justify-content:space-between; width:100%; font-size:13.5px; font-weight:600; color:var(--muted); padding:2px 0; }
+  .story-toggle svg{ transition:transform .25s ease; color:var(--muted); }
+  .story-toggle.open svg{ transform:rotate(180deg); }
+  .story-body{ max-height:0; overflow:hidden; transition:max-height .3s ease; }
+  .story-body-inner{ padding-top:16px; display:flex; flex-direction:column; gap:14px; }
+  .sb-row-label{ font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; }
+  .sb-row-text{ font-size:14.5px; line-height:1.6; color:#1F2937; }
+  .concept-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .concept-chip{ font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; background:var(--sidebar); color:#374151; }
+  .story-sources{ font-size:12.5px; color:var(--muted); }
+  .story-sources b{ color:#374151; font-weight:600; }
+
+  .ask-row{ margin-top:16px; padding-top:14px; border-top:1px solid var(--border-soft); }
+  .ask-trigger{ display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; color:var(--primary); }
+  .ask-panel{ max-height:0; overflow:hidden; transition:max-height .3s ease; }
+  .ask-panel-inner{ padding-top:12px; }
+  .ask-suggest-row{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px; }
+  .ask-suggest{ font-size:12px; font-weight:600; color:var(--muted); background:var(--sidebar); border:1px solid var(--border); padding:5px 11px; border-radius:999px; }
+  .ask-suggest:hover{ color:var(--primary); border-color:rgba(79,70,229,0.3); }
+  .ask-input-row{ display:flex; gap:8px; }
+  .ask-input{ flex:1; background:var(--sidebar); border:1px solid var(--border); border-radius:999px; padding:9px 15px; font-size:13.5px; outline:none; color:var(--ink); }
+  .ask-input:focus{ border-color:var(--primary); }
+  .ask-send{ width:36px; height:36px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:transform .15s ease; }
+  .ask-send:hover{ transform:scale(1.06); }
+  .ask-answer{ margin-top:10px; font-size:13.5px; line-height:1.6; color:#1F2937; background:var(--primary-soft); border-radius:10px; padding:12px 14px; display:none; }
+  .ask-answer.visible{ display:block; }
+
+  .quiz-row{ margin-top:14px; padding-top:14px; border-top:1px solid var(--border-soft); }
+  .quiz-prompt{ font-size:13.5px; font-weight:700; margin-bottom:10px; }
+  .quiz-opts{ display:flex; flex-direction:column; gap:7px; }
+  .quiz-opt{ text-align:left; padding:9px 13px; border-radius:10px; border:1px solid var(--border); font-size:13.5px; font-weight:500; transition:border-color .15s ease, background .15s ease; }
+  .quiz-opt:hover{ border-color:rgba(79,70,229,0.35); }
+  .quiz-opt.correct{ background:rgba(22,163,74,0.08); border-color:var(--good); color:#15803D; font-weight:700; }
+  .quiz-opt.wrong{ background:rgba(220,38,38,0.06); border-color:#DC2626; color:#B91C1C; }
+  .quiz-opt.disabled{ pointer-events:none; opacity:.55; }
+  .quiz-feedback{ font-size:13px; font-weight:600; margin-top:8px; color:var(--good); }
+
+  .story-done-row{ display:flex; align-items:center; justify-content:flex-end; margin-top:14px; padding-top:14px; border-top:1px solid var(--border-soft); }
+  .mark-done-btn{ font-size:13px; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:6px; }
+  .story-done-badge{ font-size:12.5px; font-weight:700; color:var(--good); display:flex; align-items:center; gap:6px; }
+
+  .caught-up{ display:flex; align-items:center; gap:8px; justify-content:center; font-size:13.5px; font-weight:600; color:var(--muted); padding:22px 0 6px; }
+  .caught-up svg{ color:#16A34A; }
+  .toast{ position:fixed; bottom:24px; left:50%; transform:translate(-50%,12px); background:var(--ink); color:#fff; font-size:13px; font-weight:600; padding:11px 18px; border-radius:999px; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:50; }
+  .toast.visible{ opacity:1; transform:translate(-50%,0); }
+
+  .archive-item{ display:flex; align-items:center; justify-content:space-between; padding:18px 22px; background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; cursor:pointer; transition:border-color .15s ease, transform .15s ease; }
+  .archive-item:hover{ border-color:rgba(79,70,229,0.3); transform:translateX(2px); }
+  .archive-date{ font-size:13px; font-weight:700; color:var(--muted); width:110px; flex-shrink:0; }
+  .archive-summary{ flex:1; font-size:14px; font-weight:500; color:var(--ink); }
+  .archive-count{ font-size:12.5px; color:var(--muted); font-weight:600; flex-shrink:0; }
+  .empty-state{ text-align:center; padding:60px 20px; color:var(--muted); font-size:14px; }
+
+  .compound-hero{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:30px 32px; margin-bottom:24px; }
+  .compound-hero-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px; }
+  .compound-num{ font-size:38px; font-weight:800; font-family:'Manrope',sans-serif; color:var(--primary); }
+  .compound-label{ font-size:13px; color:var(--muted); font-weight:600; }
+  .compound-stats-row{ display:flex; gap:28px; margin-top:20px; padding-top:18px; border-top:1px solid var(--border-soft); flex-wrap:wrap; }
+  .compound-stat .n{ font-size:20px; font-weight:800; }
+  .compound-stat .l{ font-size:12px; color:var(--muted); font-weight:600; margin-top:2px; }
+  .compound-note{ font-size:13.5px; color:var(--muted); line-height:1.6; max-width:560px; }
+  .concept-map-title{ font-size:15px; font-weight:700; margin:28px 0 14px; }
+  .concept-cloud{ display:flex; flex-wrap:wrap; gap:8px; }
+  .concept-cloud .concept-chip{ font-size:13px; padding:7px 13px; }
+
+  .settings-section{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 28px; margin-bottom:16px; }
+  .settings-title{ font-size:15px; font-weight:700; margin-bottom:16px; }
+  .settings-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--border-soft); gap:16px; flex-wrap:wrap; }
+  .settings-row:first-of-type{ border-top:none; padding-top:0; }
+  .settings-row-label{ font-size:14px; font-weight:600; }
+  .settings-row-sub{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .segmented{ display:flex; background:var(--sidebar); border-radius:10px; padding:3px; gap:2px; }
+  .segmented button{ padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; color:var(--muted); }
+  .segmented button.active{ background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(10,10,10,0.06); }
+  .pill-toggle{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pill-toggle .pill{ font-size:12.5px; font-weight:600; padding:6px 13px; border-radius:999px; background:var(--sidebar); color:var(--muted); border:1px solid var(--border); cursor:pointer; }
+  .pill-toggle .pill.active{ background:var(--primary-soft); color:var(--primary); border-color:rgba(79,70,229,0.3); }
+  .danger-btn{ font-size:13px; font-weight:700; color:#DC2626; }
+
+  @media (max-width:860px){
+    #sidebar{ position:fixed; z-index:20; height:100vh; transform:translateX(-100%); transition:transform .2s ease; }
+    #sidebar.mobile-open{ transform:translateX(0); box-shadow:0 0 40px rgba(0,0,0,0.15); }
+    .view{ padding:28px 18px 70px; }
+    .search-pill{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="page-landing">
+
+<!-- Subtle Film Aesthetic Layer -->
+<div class="film-grain"></div>
+<div class="vignette-overlay"></div>
+
+<!-- Continuous Background Track -->
+<div id="cinematic-bg"></div>
+
+<div id="progress-track"><div id="progress-bar"></div></div>
+<div id="brand-mark">simplify</div>
+
+
+<!-- ================= ACT 1 ================= -->
+<section id="act1" aria-label="Opening">
+  <div class="act1-inner">
+    <h1 class="act1-q">Do you really understand<br>the news you read?</h1>
+    <p class="act1-a">Most people don't.</p>
+  </div>
+  <div class="act1-scroll">
+    <span>Scroll</span>
+    <svg width="16" height="24" viewBox="0 0 16 24" fill="none" aria-hidden="true">
+      <path d="M8 1V22M8 22L2 16M8 22L14 16" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ================= ACT 2 — THE PROBLEM, TOLD AS A STRIP ================= -->
+<section id="act2-wrap" class="pin-wrap" aria-label="The everyday friction">
+  <div id="act2-inner" class="pin-inner">
+
+    <div class="comic-chrome">
+      <span class="comic-chrome-label">The problem</span>
+      <span class="comic-chrome-count" id="comic-count">01 / 05</span>
+    </div>
+
+    <div class="comic-stage" id="comic-stage">
+
+      <article class="comic-panel" data-panel="0">
+        <span class="panel-tag">It starts like any other day</span>
+        <div class="panel-clip">
+          <div class="clip-kicker">The Daily Chronicle</div>
+          <div class="clip-headline">RBI maintains status quo amid persistent inflationary pressures</div>
+          <div class="clip-dek">Monetary policy committee cites global uncertainty and domestic demand resilience…</div>
+        </div>
+        <span class="panel-caption">You open the news, ready to catch up.</span>
+      </article>
+
+      <article class="comic-panel" data-panel="1">
+        <span class="panel-tag">The vocabulary hits first</span>
+        <div class="panel-jargon">
+          <span class="jargon-word">Monetary tightening?</span>
+          <span class="jargon-word">Fiscal deficit?</span>
+          <span class="jargon-word">Geopolitical headwinds?</span>
+          <span class="jargon-word">Demand resilience?</span>
+        </div>
+        <span class="panel-caption">Four words in, and you're already lost.</span>
+      </article>
+
+      <article class="comic-panel" data-panel="2">
+        <span class="panel-tag">Then come the questions</span>
+        <div class="panel-bubbles">
+          <span class="q-bubble b1">Why did this happen?</span>
+          <span class="q-bubble b2">What happened before this?</span>
+          <span class="q-bubble b3">How does this fit the bigger picture?</span>
+        </div>
+        <span class="panel-caption">You know <em>what</em> happened. Not <em>why</em>.</span>
+      </article>
+
+      <article class="comic-panel" data-panel="3">
+        <span class="panel-tag">And the one that actually matters</span>
+        <div class="panel-big-q">Okay, but&nbsp;why should&nbsp;I&nbsp;care?</div>
+        <span class="panel-caption">News without relevance is just noise.</span>
+      </article>
+
+      <article class="comic-panel" data-panel="4">
+        <span class="panel-tag">So, most people just stop</span>
+        <div class="panel-overwhelm">
+          <span class="ow-chip">Conflicting opinions</span>
+          <span class="ow-chip">Ten tabs open</span>
+          <span class="ow-chip">Still no clear answer</span>
+          <span class="ow-chip">Complex jargon</span>
+          <span class="ow-chip">Too much, too fast</span>
+        </div>
+        <span class="panel-caption">Reading more isn't the same as understanding.</span>
+      </article>
+
+    </div>
+
+    <div class="comic-dots" id="comic-dots">
+      <span class="is-active"></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <p class="a2-line on-dark" id="a2-line0">It doesn't have to be this way.</p>
+    <div class="a2-mark" id="a2-mark">simplify</div>
+    <p class="a2-line on-light" id="a2-line2">What if understanding took less than skimming does?</p>
+  </div>
+</section>
+
+<!-- ================= ACT 3 ================= -->
+<section id="act3-wrap" class="pin-wrap" aria-label="Product reveal">
+  <div id="act3-inner" class="pin-inner">
+    <div class="a3-ambient" id="a3-ambient"></div>
+
+    <div class="product-stage" id="a3-product">
+      <div class="product-float">
+        <div class="depth-stack">
+
+          <div class="depth-card-side left" aria-hidden="true">
+            <span class="depth-card-label">Quick</span>
+            <div class="depth-card-headline">RBI cuts repo rate by 25 bps</div>
+            <div class="depth-card-line">Loans get cheaper. Understood in under 30 seconds.</div>
+          </div>
+
+          <div class="mockup" aria-hidden="true">
+          <div class="mockup-chrome">
+            <div class="mockup-chrome-left">
+              <span class="d"></span><span class="d"></span><span class="d"></span>
+              <span class="tab"><span class="dot"></span>simplify — Daily Intelligence</span>
+            </div>
+            <div class="mockup-chrome-right">
+              <span>Updated 2m ago</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div class="mockup-body">
+            <div class="mockup-greeting">
+              <span>Good morning, <span class="user-name">Simran</span> — here's what actually matters today.</span>
+              <span style="font-size:0.75rem; color:#9CA3AF;">Wed, Jul 25 • 8:30 AM</span>
+            </div>
+            
+            <div class="mockup-header-meta">
+              <div class="mockup-eyebrow"><span class="dot"></span>Macroeconomics</div>
+              <div class="mockup-meta-pill">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                2 min read
+              </div>
+            </div>
+
+            <h3 class="mockup-headline">RBI cuts repo rate by 25 bps to stimulate borrowing</h3>
+            <p class="mockup-dek">In plain terms: borrowing just got cheaper. The RBI — India's central bank — trimmed the rate it charges commercial banks, hoping people and businesses spend and invest more.</p>
+
+            <div class="mockup-grid">
+              <div class="mockup-cell">
+                <div class="k">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                  Why it matters
+                </div>
+                <div class="v">Loans get cheaper — home & auto EMIs are set to fall over the coming quarter.</div>
+              </div>
+              <div class="mockup-cell">
+                <div class="k">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 010 7.75"/></svg>
+                  Who benefits
+                </div>
+                <div class="v">Homebuyers, existing borrowers, and corporations issuing new debt expansion.</div>
+              </div>
+              <div class="mockup-cell">
+                <div class="k">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  Market impact
+                </div>
+                <div class="v">Sensex and Nifty rally led by banking stocks; bond yields drop sharply.</div>
+              </div>
+              <div class="mockup-cell">
+                <div class="k">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  What happens next
+                </div>
+                <div class="v">Commercial banks will pass on rate drops to consumer lending within 2–4 weeks.</div>
+              </div>
+            </div>
+
+            <div class="mockup-terms">
+              <span class="mockup-terms-label">Key terms, explained</span>
+              <div class="mockup-term"><b>Repo rate</b> — the rate the RBI lends to commercial banks at.</div>
+              <div class="mockup-term"><b>Monetary policy</b> — the tools a central bank uses to manage growth and inflation.</div>
+            </div>
+
+            <div class="mockup-ask">
+              <div class="mockup-ask-left">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Ask simplify anything about this story…
+              </div>
+              <span class="mockup-ask-kbd">⌘K</span>
+            </div>
+            <div class="mockup-ask-example">
+              <div class="mockup-ask-q">"How does this affect my EMI?"</div>
+              <div class="mockup-ask-a">If you have a floating-rate loan, expect your EMI to drop within 2–4 weeks, once your bank passes the cut through.</div>
+            </div>
+
+            <div class="mockup-footer-row">
+              <div class="mockup-footer-sources">
+                Cross-verified from <span>Bloomberg</span>, <span>Reuters</span> & <span>RBI Bulletin</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17L4 12" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Now you understand.
+              </div>
+            </div>
+          </div>
+        </div>
+
+          <div class="depth-card-side right" aria-hidden="true">
+            <span class="depth-card-label">Full context</span>
+            <div class="depth-card-headline">RBI cuts repo rate by 25 bps</div>
+            <ul class="depth-card-list">
+              <li>Why it matters</li>
+              <li>Background &amp; context</li>
+              <li>Who's affected</li>
+              <li>What's next</li>
+              <li>Ask simplify</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="card-notes" id="card-notes">
+        <div class="card-note note-1">
+          <span class="card-note-label">Plain language — jargon explained inline, never skipped</span>
+          <svg class="card-note-arrow arrow-1" viewBox="0 0 64 64" width="52" height="52" fill="none">
+            <path d="M6 6 C 6 34, 22 50, 52 54" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 50 L52 54 L46 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-note note-2">
+          <span class="card-note-label">Every story broken into why it matters, who benefits, and what's next</span>
+          <svg class="card-note-arrow arrow-2" viewBox="0 0 64 64" width="52" height="52" fill="none">
+            <path d="M6 6 C 6 34, 22 50, 52 54" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 50 L52 54 L46 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-note note-3">
+          <span class="card-note-label">Key terms explained — never left assuming you already know them</span>
+          <svg class="card-note-arrow arrow-3" viewBox="0 0 64 64" width="52" height="52" fill="none">
+            <path d="M6 6 C 6 34, 22 50, 52 54" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 50 L52 54 L46 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-note note-4">
+          <span class="card-note-label">Ask it anything — grounded in this exact story, not a generic chatbot</span>
+          <svg class="card-note-arrow arrow-4" viewBox="0 0 64 64" width="52" height="52" fill="none">
+            <path d="M6 6 C 6 34, 22 50, 52 54" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 50 L52 54 L46 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-note note-5">
+          <svg class="card-note-arrow arrow-5" viewBox="0 0 64 64" width="52" height="52" fill="none">
+            <path d="M6 6 C 6 34, 22 50, 52 54" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 50 L52 54 L46 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="card-note-label">Cross-verified across real sources — always shown, never hidden</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACT 5 ================= -->
+<div class="footer-region">
+  <section id="act5" aria-label="Closing">
+    <div class="a5-inner">
+      <h2 class="a5-line1 reveal-el">The smartest professionals don't consume more information.</h2>
+      <p class="a5-line2 reveal-el" style="transition-delay:.15s">They understand it better.</p>
+
+      <div class="cta-wrap reveal-el" style="transition-delay:.3s">
+        <button class="magnetic-btn" id="cta-btn">
+          <span id="cta-label">Start Free</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <p class="a5-sub reveal-el" style="transition-delay:.4s">Personalized in under 60 seconds. No credit card required.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span class="fmark">simplify</span>
+    <span>© 2026</span>
+  </footer>
+</div>
+
+</div>
+
+<div id="page-app">
+
+<!-- ============ ONBOARDING ============ -->
+<div id="onboarding">
+  <div class="ob-wrap">
+
+    <div class="ob-brand">simplify</div>
+
+    <div class="ob-progress" id="ob-progress">
+      <div class="seg" data-s="1"></div><div class="seg" data-s="2"></div>
+      <div class="seg" data-s="3"></div><div class="seg" data-s="4"></div>
+    </div>
+
+    <!-- STEP 1: who -->
+    <div class="ob-step" id="ob-step-1">
+      <div class="ob-title">Who are we personalizing for?</div>
+      <div class="ob-sub">This shapes the language and framing of your briefs.</div>
+      <div class="ob-grid" id="ob-role-grid"></div>
+      <button class="ob-btn" id="ob-role-next" disabled onclick="obGoTo(2)">Continue</button>
+    </div>
+
+    <!-- STEP 2: interests -->
+    <div class="ob-step" id="ob-step-2" style="display:none;">
+      <div class="ob-title">What should we prioritize?</div>
+      <div class="ob-sub">Pick a few — we'll refine this as you read.</div>
+      <div class="ob-grid two-col" id="ob-interest-grid"></div>
+      <button class="ob-btn" id="ob-interest-next" disabled onclick="obGoTo(3)">Continue</button>
+      <button class="ob-back" onclick="obGoTo(1)">Back</button>
+    </div>
+
+    <!-- STEP 3: time + depth -->
+    <div class="ob-step" id="ob-step-3" style="display:none;">
+      <div class="ob-title">How much time, and how deep?</div>
+      <div class="ob-sub">We'll size your daily brief to fit.</div>
+      <div class="ob-grid" id="ob-time-grid"></div>
+      <div class="ob-grid" id="ob-depth-grid"></div>
+      <button class="ob-btn" id="ob-time-next" disabled onclick="startBriefBuild()">Build my first brief</button>
+      <button class="ob-back" onclick="obGoTo(2)">Back</button>
+    </div>
+
+    <!-- STEP 4: loading -->
+    <div class="ob-step ob-loading" id="ob-step-4" style="display:none;">
+      <div class="ob-title" style="font-size:22px;">Building your first brief…</div>
+      <div class="ob-check-list" id="ob-check-list"></div>
+    </div>
+
+    <!-- STEP 5: hand off to the product -->
+    <div class="ob-step" id="ob-step-5" style="display:none; text-align:center;">
+      <div class="ob-title" style="font-size:22px;">Your first brief is ready.</div>
+      <div class="ob-sub" style="margin-bottom:28px;">simplify opens in a new tab, personalized to what you just told us.</div>
+      <a class="ob-btn" id="ob-open-product" href="#" style="text-decoration:none; margin-bottom:10px;">Open my Daily Brief →</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">simplify</div>
+    <nav class="nav-group">
+      <button class="nav-item active" data-view="today" onclick="switchView('today', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+        <span>Today</span>
+      </button>
+      <button class="nav-item" data-view="archive" onclick="switchView('archive', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M4 8v11a1 1 0 001 1h14a1 1 0 001-1V8M9 13h6"/></svg>
+        <span>Archive</span>
+      </button>
+      <button class="nav-item" data-view="compounds" onclick="switchView('compounds', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/></svg>
+        <span>Knowledge Compounds</span>
+      </button>
+      <button class="nav-item" data-view="settings" onclick="switchView('settings', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009.2 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3.5a2 2 0 110-4H3.5A1.65 1.65 0 005 9a1.65 1.65 0 00-.33-1.82l-.06-.06A2 2 0 117.44 4.3l.06.06A1.65 1.65 0 009.2 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09A1.65 1.65 0 0019.4 15z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-foot">
+      <div class="avatar" id="sidebar-avatar">Y</div>
+      <div class="sidebar-user">
+        <div class="name" id="sidebar-name">You</div>
+        <div class="streak" id="sidebar-streak">Day 0 streak</div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="topbar-date" id="topbar-date"></div>
+      <div class="topbar-right">
+        <div class="search-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="search-input" placeholder="Search stories or concepts…" oninput="handleSearch(this.value)">
+        </div>
+        <div class="streak-chip" id="topbar-streak-chip">0 day streak</div>
+      </div>
+    </div>
+
+    <div id="view-container">
+
+      <!-- TODAY -->
+      <section class="view active" id="view-today">
+        <div class="reading-col">
+          <div class="greeting" id="today-greeting">Good morning.</div>
+          <div class="brief-title">Today's Brief</div>
+          <div class="brief-meta" id="today-meta">0 stories</div>
+          <div id="today-stories"></div>
+          <div id="today-caught-up" class="caught-up" style="display:none;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            You're caught up.
+          </div>
+        </div>
+      </section>
+
+      <!-- ARCHIVE -->
+      <section class="view" id="view-archive">
+        <div class="wide-col">
+          <h2 class="display" style="font-size:22px; font-weight:800; margin-bottom:22px;">Archive</h2>
+          <div id="archive-list"></div>
+        </div>
+      </section>
+
+      <!-- COMPOUNDS -->
+      <section class="view" id="view-compounds">
+        <div class="wide-col">
+          <h2 class="display" style="font-size:22px; font-weight:800; margin-bottom:22px;">Knowledge Compounds</h2>
+          <div class="compound-hero">
+            <div class="compound-hero-top">
+              <div>
+                <div class="compound-num" id="compound-streak-num">0</div>
+                <div class="compound-label">day streak</div>
+              </div>
+              <div class="compound-label" id="compound-points">0 knowledge points</div>
+            </div>
+            <div class="compound-stats-row">
+              <div class="compound-stat"><div class="n" id="stat-briefs">0</div><div class="l">briefs understood</div></div>
+              <div class="compound-stat"><div class="n" id="stat-concepts">0</div><div class="l">concepts learned</div></div>
+              <div class="compound-stat"><div class="n" id="stat-quiz">0%</div><div class="l">quiz accuracy</div></div>
+              <div class="compound-stat"><div class="n" id="stat-saved">0</div><div class="l">stories saved</div></div>
+            </div>
+          </div>
+          <p class="compound-note">Knowledge compounds like investing. Small, consistent five-minute mornings become sharper judgement over months — this is simply a record of that, not a score to chase.</p>
+          <div class="concept-map-title">Concepts you've learned</div>
+          <div class="concept-cloud" id="concept-cloud"></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings">
+        <div class="wide-col">
+          <h2 class="display" style="font-size:22px; font-weight:800; margin-bottom:22px;">Settings</h2>
+
+          <div class="settings-section">
+            <div class="settings-title">Reading time</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">How much time do you have most mornings?</div>
+                <div class="settings-row-sub">This shapes how long your daily brief is.</div>
+              </div>
+              <div class="segmented" id="settings-time"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Depth</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">Preferred explanation depth</div>
+                <div class="settings-row-sub">Headline-level, or full context every time?</div>
+              </div>
+              <div class="segmented" id="settings-depth"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Interests</div>
+            <div class="pill-toggle" id="settings-interests"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Account</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label" id="settings-account-label">Not saved yet</div>
+                <div class="settings-row-sub">Local beta — your progress is stored on this device.</div>
+              </div>
+              <button class="ob-btn" style="width:auto; padding:9px 18px; font-size:13px;" onclick="saveAccount()">Save progress</button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Reset</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">Start over</div>
+                <div class="settings-row-sub">Clears your profile, streak, and history on this device.</div>
+              </div>
+              <button class="danger-btn" onclick="resetEverything()">Reset simplify</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div>
+
+<div id="transition-curtain"></div>
+
+<script>
+(function(){
+  const clamp01 = v => Math.min(1, Math.max(0, v));
+  const lerp = (a,b,t) => a + (b-a)*t;
+  const mapRange = (v,a,b,c,d) => lerp(c,d, clamp01((v-a)/(b-a)));
+  
+  // Custom Smooth Lux Easing Curves
+  function cubicEaseOut(t) {
+    return 1 - Math.pow(1 - clamp01(t), 3);
+  }
+  function smoothStep(t) {
+    t = clamp01(t);
+    return t * t * (3 - 2 * t);
+  }
+
+  function fadeWindow(p,a,b,c,d){
+    if(p<=a || p>=d) return 0;
+    if(p<b) return mapRange(p,a,b,0,1);
+    if(p<=c) return 1;
+    return mapRange(p,c,d,1,0);
+  }
+
+  function mixHex(hexA, hexB, t){
+    const pa = parseInt(hexA.slice(1),16), pb = parseInt(hexB.slice(1),16);
+    const ar=(pa>>16)&255, ag=(pa>>8)&255, ab=pa&255;
+    const br=(pb>>16)&255, bg=(pb>>8)&255, bb=pb&255;
+    const r=Math.round(lerp(ar,br,t)), g=Math.round(lerp(ag,bg,t)), b=Math.round(lerp(ab,bb,t));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isDesktop = window.matchMedia('(min-width:901px)').matches;
+  let landingActive = true;
+
+  const progressBar = document.getElementById('progress-bar');
+  const brandMark = document.getElementById('brand-mark');
+  const act3Wrap = document.getElementById('act3-wrap');
+  const cinematicBg = document.getElementById('cinematic-bg');
+
+  // ---------- Act 5 reveal ----------
+  const revealEls = document.querySelectorAll('.reveal-el');
+  if('IntersectionObserver' in window && !reduceMotion){
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('is-visible'); });
+    }, { threshold:.35 });
+    revealEls.forEach(el=>io.observe(el));
+  } else {
+    revealEls.forEach(el=>el.classList.add('is-visible'));
+  }
+
+  // ---------- Hand off to the real product (same page) ----------
+  const curtain = document.getElementById('transition-curtain');
+  const ctaBtn = document.getElementById('cta-btn');
+  const pageLanding = document.getElementById('page-landing');
+  const pageApp = document.getElementById('page-app');
+  ctaBtn.addEventListener('click', ()=>{
+    curtain.classList.add('active');
+    setTimeout(()=>{
+      pageLanding.classList.add('hidden');
+      pageApp.classList.add('active');
+      window.scrollTo(0,0);
+      landingActive = false;
+      requestAnimationFrame(()=>{ curtain.classList.remove('active'); });
+    }, 550);
+  });
+
+  if(reduceMotion || !isDesktop){
+    document.querySelectorAll('.a2-line,.a2-mark,.product-stage').forEach(el=>{
+      el.style.opacity = 1;
+    });
+    document.querySelectorAll('.comic-panel').forEach(el=>{ el.style.opacity = 1; el.style.transform = 'none'; });
+    document.querySelectorAll('.card-note').forEach(el=>{ el.style.opacity = 1; });
+    document.querySelectorAll('.depth-card-side').forEach(el=>{ el.style.opacity = 1; });
+    return;
+  }
+
+  // ================= SCROLL ENGINE WITH POLISHED RHYTHM =================
+  const act2WrapEl = document.getElementById('act2-wrap');
+
+  const mark = document.getElementById('a2-mark');
+  const line0 = document.getElementById('a2-line0');
+  const line2 = document.getElementById('a2-line2');
+  const comicPanels = Array.from(document.querySelectorAll('.comic-panel'));
+  const comicDots = Array.from(document.querySelectorAll('#comic-dots span'));
+  const comicCount = document.getElementById('comic-count');
+
+  const a3Ambient = document.getElementById('a3-ambient');
+  const a3Product = document.getElementById('a3-product');
+  const cardNotes = Array.from(document.querySelectorAll('.card-note'));
+  const depthSides = Array.from(document.querySelectorAll('.depth-card-side'));
+
+  function getProgress(wrapper){
+    const rect = wrapper.getBoundingClientRect();
+    const total = rect.height - window.innerHeight;
+    if(total <= 0) return rect.top < 0 ? 1 : 0;
+    return clamp01(-rect.top / total);
+  }
+
+  let mouseNX = 0, mouseNY = 0;
+  window.addEventListener('mousemove', (e)=>{
+    mouseNX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseNY = (e.clientY / window.innerHeight) * 2 - 1;
+  }, { passive:true });
+
+  function updateGlobalBackground(p2, p3) {
+    let currentBg = '#0A0A0A';
+    if (p2 > 0.86 && p3 < 0.85) {
+      const t = mapRange(p2, 0.86, 0.90, 0, 1);
+      currentBg = mixHex('#0A0A0A', '#FAFAFA', t);
+    } else if (p3 >= 0.85) {
+      const t = mapRange(p3, 0.85, 0.98, 0, 1);
+      currentBg = mixHex('#FAFAFA', '#0A0A0A', t);
+    }
+    cinematicBg.style.backgroundColor = currentBg;
+  }
+
+  function updateAct2(p){
+    // Comic strip occupies the first ~62% of this act's scroll; the
+    // "simplify" reveal + two closing lines take the remainder.
+    const stripEnd = 0.62;
+    const stripP = clamp01(p / stripEnd);
+    const n = comicPanels.length;
+    const stageFloat = stripP * n;
+    const idx = Math.min(n - 1, Math.floor(stageFloat));
+    const localT = stageFloat - idx;
+
+    comicPanels.forEach((panel, i)=>{
+      if(p >= stripEnd){ panel.style.opacity = 0; return; }
+      if(i === idx){
+        const entry = smoothStep(mapRange(localT, 0, 0.22, 0, 1));
+        const exit = smoothStep(mapRange(localT, 0.8, 1, 0, 1));
+        const op = entry * (1 - exit);
+        panel.style.opacity = op;
+        panel.style.transform = `translateY(${lerp(18, 0, entry) - exit*14}px) scale(${lerp(0.97,1,entry)})`;
+      } else {
+        panel.style.opacity = 0;
+        panel.style.transform = 'translateY(18px) scale(0.97)';
+      }
+    });
+
+    comicDots.forEach((d,i)=> d.classList.toggle('is-active', i === idx && p < stripEnd));
+    if(comicCount) comicCount.textContent = `0${Math.min(idx+1,n)} / 0${n}`;
+
+    const l0In = smoothStep(mapRange(p, 0.62, 0.66, 0, 1));
+    const l0Out = smoothStep(mapRange(p, 0.71, 0.75, 0, 1));
+    const l0Opacity = l0In * (1 - l0Out);
+    line0.style.opacity = l0Opacity;
+    line0.style.transform = `translate(-50%,-50%) translateY(${lerp(10, 0, l0In) - lerp(0, 10, l0Out)}px)`;
+
+    const markT = cubicEaseOut(mapRange(p, 0.73, 0.80, 0, 1));
+    mark.style.opacity = fadeWindow(p, 0.73, 0.78, 0.87, 0.91);
+    mark.style.transform = `translate(-50%,-50%) scale(${lerp(0.35,1,markT)})`;
+
+    const l2In = smoothStep(mapRange(p, 0.90, 0.94, 0, 1));
+    const l2Out = smoothStep(mapRange(p, 0.99, 1.0, 0, 1));
+    const l2Opacity = l2In * (1 - l2Out);
+    line2.style.opacity = l2Opacity;
+    line2.style.transform = `translate(-50%,-50%) translateY(${lerp(10, 0, l2In) - lerp(0, 10, l2Out)}px)`;
+  }
+
+  function updateAct3(p){
+    const riseT = cubicEaseOut(mapRange(p, 0.08, 0.44, 0, 1));
+    const holdOut = smoothStep(mapRange(p, 0.86, 0.98, 1, 0));
+
+    a3Product.style.opacity = smoothStep(mapRange(p, 0.08, 0.26, 0, 1)) * (p > 0.86 ? holdOut : 1);
+    
+    const baseY = lerp(90, 0, riseT);
+    const scale = lerp(0.9, 1, riseT) * lerp(1, 0.96, mapRange(p,0.86,0.98,0,1));
+
+    const parallaxAmt = mapRange(p, 0.20, 0.50, 0, 1);
+    const tiltX = mouseNY * 2.5 * parallaxAmt;
+    const tiltY = -mouseNX * 3.5 * parallaxAmt;
+
+    a3Product.style.transform = `translateY(${baseY}px) scale(${scale}) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+    a3Product.style.perspective = '1600px';
+
+    a3Ambient.style.opacity = mapRange(p, 0.15, 0.45, 0, 1) * (1 - mapRange(p,0.86,0.98,0,0.3));
+
+    // Depth-preview cards (Quick / Full context) show first, then clear the
+    // stage before the annotations arrive, so nothing ever overlaps.
+    if(depthSides.length){
+      const sideIn = smoothStep(mapRange(p, 0.10, 0.20, 0, 1));
+      const sideOut = smoothStep(mapRange(p, 0.38, 0.45, 0, 1));
+      depthSides.forEach(side=>{
+        side.style.opacity = sideIn * (1 - sideOut);
+      });
+    }
+
+    if(cardNotes.length){
+      const noteOut = smoothStep(mapRange(p, 0.84, 0.90, 0, 1));
+      const timings = [[0.46,0.52],[0.53,0.59],[0.60,0.66],[0.67,0.73],[0.74,0.80]];
+      cardNotes.forEach((note, i)=>{
+        const [inStart, inEnd] = timings[i] || timings[timings.length-1];
+        const inT = smoothStep(mapRange(p, inStart, inEnd, 0, 1));
+        note.style.opacity = inT * (1 - noteOut);
+        note.style.transform = `translateY(${lerp(10, 0, inT)}px)`;
+      });
+    }
+  }
+
+  function tick(){
+    const scrollTop = window.scrollY;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    progressBar.style.width = (max>0 ? (scrollTop/max*100) : 0) + '%';
+
+    const p2 = getProgress(act2WrapEl);
+    const p3 = getProgress(act3Wrap);
+
+    updateAct2(p2);
+    updateAct3(p3);
+    updateGlobalBackground(p2, p3);
+
+    const showLogo = scrollTop > (act3Wrap.offsetTop - window.innerHeight*0.6);
+    const isLightBg = p2 > 0.89 && p3 < 0.88;
+    
+    brandMark.classList.toggle('visible', showLogo);
+    brandMark.classList.toggle('on-light', isLightBg);
+
+    if(landingActive) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<script>
+/* ============================================================
+   DATA LAYER — mock stories. Swap this for a real feed API later;
+   nothing else in the app should need to change if the shape holds.
+   ============================================================ */
+const INTERESTS = ["Markets","Policy","Technology","Startups","Economy","AI"];
+
+const STORIES = [
+  {
+    id:"rbi-repo-cut", tag:"Policy", interest:"Policy",
+    headline:"RBI cuts repo rate by 25 basis points",
+    summary:"India's central bank lowered its key lending rate for the second time this year, aiming to boost borrowing and spending as inflation cools.",
+    whatHappened:"The Reserve Bank of India's Monetary Policy Committee voted to cut the repo rate — the rate at which it lends to commercial banks — from 6.25% to 6.00%.",
+    whyItMatters:"Lower borrowing costs typically flow through to home loans, auto loans, and business credit, while reducing returns on fixed deposits.",
+    context:"The repo rate is the RBI's main lever for controlling inflation and growth. Cuts happen when inflation is within target and the central bank wants to encourage spending.",
+    whoIsAffected:"Homebuyers and existing borrowers with floating-rate loans benefit from lower EMIs. Bank shareholders may see margin pressure short-term. Fixed-deposit savers earn less.",
+    whatsNext:"Commercial banks typically pass on rate cuts within 2–4 weeks. Watch the next inflation print for signs the RBI holds or cuts further.",
+    concepts:["Repo rate","Monetary policy","EMI"],
+    sources:["RBI Monetary Policy Statement","Reuters"],
+    quiz:{ q:"What does a repo rate cut most directly do?", opts:["Raises taxes","Lowers the cost of borrowing","Increases the currency's value","Reduces government spending"], correct:1 }
+  },
+  {
+    id:"bank-stocks-rally", tag:"Markets", interest:"Markets",
+    headline:"Bank stocks rally on rate cut expectations",
+    summary:"Banking shares led a broad market rally as investors priced in cheaper credit and stronger loan growth ahead.",
+    whatHappened:"The Nifty Bank index rose over 2% in a single session, outpacing the broader market, led by large private lenders.",
+    whyItMatters:"Cheaper credit tends to expand lending volumes over time, and markets often price that in before the effect shows up in earnings.",
+    context:"Bank stock prices are sensitive to interest-rate expectations because rates affect both how much banks can lend and how much they earn on that lending.",
+    whoIsAffected:"Bank shareholders and NBFCs with heavy retail-credit exposure benefit most directly from the re-rating.",
+    whatsNext:"Q2 earnings will show whether margin expansion actually materializes — that's the real test of whether the rally holds.",
+    concepts:["Market re-rating","Net interest margin","NBFC"],
+    sources:["Bloomberg","NSE data"],
+    quiz:{ q:"Why might bank stocks rally before a rate cut actually shows up in earnings?", opts:["Markets always overreact","Investors are pricing in expected future effects","Bank stocks are unrelated to interest rates","Regulators mandate it"], correct:1 }
+  },
+  {
+    id:"apple-india-manufacturing", tag:"Technology", interest:"Technology",
+    headline:"Apple expands manufacturing investment in India",
+    summary:"Apple is deepening its India manufacturing footprint, adding suppliers and assembly capacity as it diversifies away from China.",
+    whatHappened:"Apple confirmed an expanded investment with contract manufacturers to increase iPhone assembly capacity in India.",
+    whyItMatters:"Diversifying manufacturing away from a single country reduces supply-chain and geopolitical risk for one of the world's largest electronics makers.",
+    context:"Apple has been gradually shifting a portion of production to India since 2017, accelerating after global supply-chain disruptions exposed the risk of over-concentration.",
+    whoIsAffected:"Indian component suppliers and local employment benefit most directly; Apple gains long-term cost and risk resilience.",
+    whatsNext:"Expect supplier announcements and expanded assembly lines over the next two quarters, plus possible policy incentives from the Indian government.",
+    concepts:["Supply-chain diversification","Contract manufacturing"],
+    sources:["Financial Times","Company filings"],
+    quiz:{ q:"What's the main strategic reason Apple is expanding manufacturing outside China?", opts:["Lower iPhone prices","Reducing supply-chain concentration risk","Government mandate","Currency arbitrage"], correct:1 }
+  },
+  {
+    id:"startup-funding-slowdown", tag:"Startups", interest:"Startups",
+    headline:"Early-stage startup funding cools for a third straight quarter",
+    summary:"Seed and Series A deal volume kept falling as investors stay selective, even as later-stage mega-rounds pick back up.",
+    whatHappened:"New data shows early-stage funding fell again this quarter, while funding to already-established companies rose.",
+    whyItMatters:"A prolonged early-stage slowdown means fewer new companies get funded at all, which shapes what the startup landscape looks like years from now.",
+    context:"Investors historically rotate between 'spray and pray' early bets and concentrated bets on proven winners depending on how easy it is to raise the next round.",
+    whoIsAffected:"First-time founders face a harder fundraising environment; investors with dry powder gain negotiating leverage; employees at early-stage startups face more uncertainty.",
+    whatsNext:"Watch seed-stage deal counts over the next two quarters — a rebound there usually leads a broader recovery by 12–18 months.",
+    concepts:["Seed funding","Series A","Dry powder"],
+    sources:["PitchBook","TechCrunch"],
+    quiz:{ q:"What does 'dry powder' refer to in this context?", opts:["Unused capital investors haven't deployed yet","A startup's cash reserves","A type of funding round","Government subsidy funds"], correct:0 }
+  },
+  {
+    id:"ai-earnings-cycle", tag:"AI", interest:"AI",
+    headline:"AI infrastructure spending is reshaping big tech earnings",
+    summary:"Major tech companies are now judged partly on AI capital expenditure — and investors are starting to ask when it pays off.",
+    whatHappened:"Several large tech firms reported record capital spending on AI infrastructure, with mixed investor reaction depending on revenue tied to that spend.",
+    whyItMatters:"The scale of this spending is now large enough to move entire company valuations, making 'AI capex' a headline metric alongside revenue and profit.",
+    context:"Building AI infrastructure — chips, data centers, power — requires spending years ahead of expected revenue, unlike most traditional tech investment cycles.",
+    whoIsAffected:"Chipmakers and data-center operators benefit directly; shareholders of spending companies bear near-term margin pressure until returns materialize.",
+    whatsNext:"Expect closer scrutiny of 'AI revenue' disclosures next earnings season as investors try to separate hype from payoff.",
+    concepts:["Capital expenditure","AI infrastructure","Margin pressure"],
+    sources:["Company earnings calls","The Economist"],
+    quiz:{ q:"Why is AI capex getting unusual investor scrutiny right now?", opts:["It's illegal in some markets","Its scale is now large enough to move valuations, with unclear near-term payoff","AI companies don't report earnings","It has no effect on margins"], correct:1 }
+  },
+  {
+    id:"rupee-inflation-print", tag:"Economy", interest:"Economy",
+    headline:"Rupee steadies as inflation print comes in below forecast",
+    summary:"India's currency held firm after consumer price inflation undershot expectations, easing pressure on the central bank.",
+    whatHappened:"Headline CPI inflation came in at 3.8% year-on-year, below the 4.1% economists expected, giving the RBI more room to maneuver.",
+    whyItMatters:"Lower-than-expected inflation reduces pressure on the central bank to keep rates high, and tends to support currency stability by reducing rate-differential risk.",
+    context:"Inflation prints are watched closely because central banks set policy partly in reaction to them — a surprise in either direction can shift rate expectations fast.",
+    whoIsAffected:"Importers benefit from a stable rupee; consumers benefit from slower price growth; exporters watch for any rupee strengthening that could hurt competitiveness.",
+    whatsNext:"Markets will look to the next RBI policy meeting for confirmation of whether this data supports a further rate cut.",
+    concepts:["CPI inflation","Currency stability","Rate differential"],
+    sources:["Ministry of Statistics","Reuters"],
+    quiz:{ q:"Why does lower-than-expected inflation typically ease pressure on a central bank?", opts:["It has no policy relevance","It gives the bank more room to cut or hold rates without risking price spirals","It forces an immediate rate hike","It only affects exporters"], correct:1 }
+  }
+];
+
+/* Fallback answers — used only if the live API call fails or isn't
+   configured yet, so the demo never breaks. Not presented as live data
+   when the real endpoint is reachable. */
+function askSimplifyFallback(story, question){
+  const q = question.toLowerCase();
+  const generic = `Grounded in "${story.headline}": ${story.whyItMatters}`;
+  if(q.includes("simply") || q.includes("simple") || q.includes("eli5")){
+    return `In plain terms: ${story.whatHappened} ${story.whyItMatters}`;
+  }
+  if(q.includes("why did") || q.includes("why does") || q.includes("why is") || q.includes("happen")){
+    return story.context;
+  }
+  if(q.includes("background") || q.includes("history") || q.includes("first")){
+    return story.context;
+  }
+  if(q.includes("affect me") || q.includes("affect us") || q.includes("me personally") || q.includes("matter to me")){
+    return story.whoIsAffected;
+  }
+  if(q.includes("term") || q.includes("mean") || q.includes("jargon") || q.includes("what is") || q.includes("what's")){
+    const c = story.concepts[0];
+    return `"${c}" is one of the key terms here — worth reading the concepts listed below the story for a plain-language definition. Broadly: ${story.context}`;
+  }
+  if(q.includes("next") || q.includes("later") || q.includes("future")){
+    return story.whatsNext;
+  }
+  return generic;
+}
+
+/* Live "Ask simplify" — asks Claude directly via the viewer's own
+   Claude account (the published-artifact `sample` capability), grounded
+   only in this story's own fields. Falls back to the local canned logic
+   if sampling isn't available or the viewer declines, so the demo
+   never breaks either way. */
+let _samplePromise = null;
+function getSample(){
+  if(!_samplePromise) _samplePromise = (window.claude ? window.claude.use('sample') : Promise.resolve(null));
+  return _samplePromise;
+}
+async function askSimplify(story, question){
+  try{
+    const sample = await getSample();
+    if(!sample) throw new Error('sampling unavailable');
+    const prompt = `You are simplify's AI tutor. Answer the question below about ONE specific news story, grounded only in the story details given — never outside general knowledge, never invented facts. Keep the answer under 90 words, plain language, no unexplained jargon. If the question can't be answered from this story, say so plainly.
+
+Story details:
+Headline: ${story.headline}
+What happened: ${story.whatHappened}
+Why it matters: ${story.whyItMatters}
+Context: ${story.context}
+Who's affected: ${story.whoIsAffected}
+What's next: ${story.whatsNext}
+Key concepts: ${(story.concepts||[]).join(', ')}
+
+Question: ${question}`;
+    const { text } = await sample(prompt, { modelTier:'quick' });
+    if(!text) throw new Error('empty answer');
+    return text;
+  }catch(err){
+    return askSimplifyFallback(story, question);
+  }
+}
+
+/* ============================================================
+   STATE — persisted to localStorage
+   ============================================================ */
+const STORAGE_KEY = "simplify_state_v1";
+
+function defaultState(){
+  return {
+    onboarded:false,
+    account:null,
+    profile:{ role:null, interests:[], time:null, depth:null },
+    stories:{},          // id -> { read:bool, saved:bool, quizCorrect:bool|null, quizAttempted:bool }
+    concepts:[],         // learned concept names, deduped
+    streak:0,
+    points:0,
+    lastCompletedDate:null,   // yyyy-mm-dd of last day a brief was fully completed
+    archive:[]            // [{date, storyIds:[...]}]
+  };
+}
+
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed);
+  }catch(e){
+    return defaultState();
+  }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function todayStr(){
+  return new Date().toISOString().slice(0,10);
+}
+function storyState(id){
+  if(!state.stories[id]) state.stories[id] = { read:false, saved:false, quizCorrect:null, quizAttempted:false };
+  return state.stories[id];
+}
+
+/* ============================================================
+   ONBOARDING
+   ============================================================ */
+const ROLES = [
+  {v:"Student", label:"Student", sub:"Building context and vocabulary"},
+  {v:"Working Professional", label:"Working professional", sub:"Staying sharp on what moves markets"},
+  {v:"Founder/Investor", label:"Founder or investor", sub:"Tracking what affects decisions"},
+  {v:"Other", label:"Just curious", sub:"Want to actually understand the news"}
+];
+const TIMES = [
+  {v:"5", label:"5 minutes", sub:"Just the headline framework"},
+  {v:"10", label:"10 minutes", sub:"Headlines plus context"},
+  {v:"15", label:"15+ minutes", sub:"Full depth, every story"}
+];
+const DEPTHS = [
+  {v:"quick", label:"Quick takes", sub:"Why it matters, who's affected, what's next"},
+  {v:"full", label:"Full context", sub:"Add background and key terms explained"}
+];
+
+let obSelections = { role:null, interests:[], time:null, depth:null };
+
+function renderOnboardingOptions(){
+  const roleGrid = document.getElementById("ob-role-grid");
+  roleGrid.innerHTML = ROLES.map(r => obCardHTML(r.v, r.label, r.sub, "role")).join("");
+
+  const interestGrid = document.getElementById("ob-interest-grid");
+  interestGrid.innerHTML = INTERESTS.map(i => obCardHTML(i, i, "", "interest")).join("");
+
+  const timeGrid = document.getElementById("ob-time-grid");
+  timeGrid.innerHTML = TIMES.map(t => obCardHTML(t.v, t.label, t.sub, "time")).join("");
+
+  const depthGrid = document.getElementById("ob-depth-grid");
+  depthGrid.innerHTML = DEPTHS.map(d => obCardHTML(d.v, d.label, d.sub, "depth")).join("");
+}
+function obCardHTML(value, label, sub, group){
+  return `<button type="button" class="ob-card" data-group="${group}" data-value="${value}" onclick="obSelect('${group}','${value}', this)">
+    <div><div class="ob-card-label">${label}</div>${sub ? `<div class="ob-card-sub">${sub}</div>` : ""}</div>
+    ${group === "interest" ? "" : `<div class="ob-radio"></div>`}
+  </button>`;
+}
+function obSelect(group, value, el){
+  if(group === "interest"){
+    el.classList.toggle("selected");
+    const idx = obSelections.interests.indexOf(value);
+    if(idx >= 0) obSelections.interests.splice(idx,1); else obSelections.interests.push(value);
+    document.getElementById("ob-interest-next").disabled = obSelections.interests.length === 0;
+    return;
+  }
+  const grid = el.parentElement;
+  grid.querySelectorAll(".ob-card").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
+  obSelections[group] = value;
+  if(group === "role") document.getElementById("ob-role-next").disabled = false;
+  if(group === "time") checkTimeDepthReady();
+}
+function checkTimeDepthReady(){
+  document.getElementById("ob-time-next").disabled = !(obSelections.time);
+}
+// depth selection also needs to trigger the readiness check
+document.addEventListener("click", (e)=>{
+  if(e.target.closest('[data-group="depth"]')) checkTimeDepthReady();
+});
+
+function obGoTo(step){
+  document.querySelectorAll(".ob-step").forEach(s => s.style.display = "none");
+  document.getElementById("ob-step-" + step).style.display = "block";
+  document.querySelectorAll("#ob-progress .seg").forEach(seg=>{
+    seg.classList.toggle("done", parseInt(seg.dataset.s) <= step);
+  });
+}
+
+function startBriefBuild(){
+  if(!obSelections.depth) obSelections.depth = "quick"; // sensible default if skipped
+  obGoTo(4);
+  const steps = ["Reading your interests","Matching today's stories","Sizing your brief","Preparing Ask simplify"];
+  const list = document.getElementById("ob-check-list");
+  list.innerHTML = steps.map((s,i)=>`<div class="ob-check-item" id="ob-check-${i}"><span class="dot"></span>${s}</div>`).join("");
+  steps.forEach((s,i)=>{
+    setTimeout(()=>{ document.getElementById("ob-check-"+i).classList.add("on"); document.getElementById("ob-check-"+i).querySelector(".dot").textContent = "✓"; }, (i+1)*450);
+  });
+  setTimeout(finishOnboarding, steps.length*450 + 500);
+}
+
+// The actual Simplify product lives at this separate artifact. Onboarding
+// here only collects preferences — it hands off to that page rather than
+// opening its own #app view.
+// The Simplify product lives at app.html, served from the same Vercel
+// deployment — same origin, so localStorage is shared natively too. The
+// URL params below are kept as a harmless fallback for the first load.
+const SIMPLIFY_PRODUCT_URL = "app.html";
+
+function finishOnboarding(){
+  state.profile.role = obSelections.role;
+  state.profile.interests = obSelections.interests;
+  state.profile.time = obSelections.time;
+  state.profile.depth = obSelections.depth;
+  state.onboarded = true;
+  saveState();
+
+  // Two separate published artifacts don't reliably share localStorage
+  // (different sandboxed origins), so pass the essentials as URL params —
+  // the product page reads these on load and merges them into its state.
+  const params = new URLSearchParams({
+    role: obSelections.role || "",
+    interests: (obSelections.interests || []).join(","),
+    time: obSelections.time || "",
+    depth: obSelections.depth || ""
+  });
+  document.getElementById("ob-open-product").href = `${SIMPLIFY_PRODUCT_URL}?${params.toString()}`;
+
+  obGoTo(5);
+}
+
+/* ============================================================
+   RECOMMENDATION — simple rule-based ranking for the beta
+   ============================================================ */
+function storyCountForTime(time){
+  if(time === "5") return 2;
+  if(time === "15") return 5;
+  return 3; // default / 10 min
+}
+function getTodayStories(){
+  const interests = state.profile.interests || [];
+  const scored = STORIES.map(s => {
+    let score = 0;
+    if(interests.includes(s.interest)) score += 10;
+    const st = storyState(s.id);
+    if(st.read) score -= 20; // deprioritize already-read
+    return { story:s, score };
+  });
+  scored.sort((a,b)=> b.score - a.score);
+  const n = storyCountForTime(state.profile.time);
+  return scored.slice(0, n).map(x => x.story);
+}
+
+/* ============================================================
+   RENDER — Today view
+   ============================================================ */
+function renderToday(){
+  const list = getTodayStories();
+  document.getElementById("today-greeting").textContent = greetingText();
+  document.getElementById("today-meta").textContent = `${list.length} ${list.length===1?"story":"stories"} · about ${Math.max(1, Math.round(list.length*1.6))} min read`;
+  const container = document.getElementById("today-stories");
+  container.innerHTML = list.map(storyHTML).join("");
+  document.getElementById("today-caught-up").style.display = list.length ? "flex" : "none";
+
+  if(list.length === 0){
+    container.innerHTML = `<div class="empty-state">No new stories match your interests right now — check Archive, or broaden your interests in Settings.</div>`;
+  }
+}
+function greetingText(){
+  const h = new Date().getHours();
+  const name = state.account?.name ? state.account.name.split(" ")[0] : "there";
+  if(h < 12) return `Good morning, ${name}.`;
+  if(h < 18) return `Good afternoon, ${name}.`;
+  return `Good evening, ${name}.`;
+}
+function storyHTML(s){
+  const st = storyState(s.id);
+  return `
+  <div class="story" data-story-id="${s.id}">
+    <div class="story-top-row">
+      <span class="story-tag">${s.tag}</span>
+      <button class="story-save ${st.saved?'saved':''}" onclick="toggleSave('${s.id}', this)" aria-label="Save story">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="${st.saved?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+      </button>
+    </div>
+    <div class="story-headline">${s.headline}</div>
+    <div class="story-summary">${s.summary}</div>
+    <button class="story-toggle" onclick="toggleStory(this, '${s.id}')">
+      <span>Why it matters, who's affected, what's next</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="story-body">
+      <div class="story-body-inner">
+        <div><div class="sb-row-label">Why it matters</div><div class="sb-row-text">${s.whyItMatters}</div></div>
+        <div><div class="sb-row-label">Context</div><div class="sb-row-text">${s.context}</div></div>
+        <div><div class="sb-row-label">Who's affected</div><div class="sb-row-text">${s.whoIsAffected}</div></div>
+        <div><div class="sb-row-label">What's next</div><div class="sb-row-text">${s.whatsNext}</div></div>
+        <div>
+          <div class="sb-row-label">Key concepts</div>
+          <div class="concept-chips">${s.concepts.map(c=>`<span class="concept-chip">${c}</span>`).join("")}</div>
+        </div>
+        <div class="story-sources">Cross-referenced: ${s.sources.map(src=>`<b>${src}</b>`).join(", ")}</div>
+
+        <div class="ask-row">
+          <button class="ask-trigger" onclick="toggleAsk(this)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
+            Ask simplify about this
+          </button>
+          <div class="ask-panel">
+            <div class="ask-panel-inner">
+              <div class="ask-suggest-row">
+                <button class="ask-suggest" onclick="quickAsk(this,'Explain this simply')">Explain this simply</button>
+                <button class="ask-suggest" onclick="quickAsk(this,'How does this affect me?')">How does this affect me?</button>
+                <button class="ask-suggest" onclick="quickAsk(this,'What is the background?')">What's the background?</button>
+              </div>
+              <div class="ask-input-row">
+                <input class="ask-input" type="text" placeholder="Ask anything about this story…" onkeydown="if(event.key==='Enter') submitAsk(this, '${s.id}')">
+                <button class="ask-send" onclick="submitAsk(this.previousElementSibling, '${s.id}')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </button>
+              </div>
+              <div class="ask-answer"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-row">
+          <div class="quiz-prompt">Quick check</div>
+          <div class="quiz-body" id="quiz-${s.id}">${quizHTML(s)}</div>
+        </div>
+
+        <div class="story-done-row">
+          ${st.read
+            ? `<span class="story-done-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Understood</span>`
+            : `<button class="mark-done-btn" onclick="markUnderstood('${s.id}', this)">Mark as understood →</button>`}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function quizHTML(s){
+  const st = storyState(s.id);
+  if(st.quizAttempted){
+    return `<div class="quiz-opts">${s.quiz.opts.map((o,i)=>`<div class="quiz-opt disabled ${i===s.quiz.correct?'correct':(st.quizCorrect===false && i===st.lastPicked ? 'wrong':'')}">${o}</div>`).join("")}</div>
+      <div class="quiz-feedback">${st.quizCorrect ? "Correct — nice work." : "Marked — correct answer highlighted above."}</div>`;
+  }
+  return `<div class="quiz-prompt-text" style="font-size:13.5px; color:#374151; margin-bottom:8px;">${s.quiz.q}</div>
+    <div class="quiz-opts">${s.quiz.opts.map((o,i)=>`<button class="quiz-opt" onclick="answerQuiz('${s.id}', ${i}, this)">${o}</button>`).join("")}</div>`;
+}
+function answerQuiz(storyId, idx, btn){
+  const s = STORIES.find(x=>x.id===storyId);
+  const st = storyState(storyId);
+  const correct = idx === s.quiz.correct;
+  st.quizAttempted = true;
+  st.quizCorrect = correct;
+  st.lastPicked = idx;
+  if(correct){
+    addPoints(5);
+    s.concepts.forEach(addConcept);
+  }
+  saveState();
+  document.getElementById("quiz-"+storyId).innerHTML = quizHTML(s);
+  showToast(correct ? "Correct! +5 knowledge points" : "Marked — see the correct answer above");
+}
+
+/* ---- story interactions ---- */
+function toggleStory(btn, id){
+  const body = btn.nextElementSibling;
+  const isOpen = btn.classList.toggle("open");
+  body.style.maxHeight = isOpen ? body.scrollHeight + "px" : "0px";
+}
+function toggleAsk(btn){
+  const panel = btn.nextElementSibling;
+  const isOpen = panel.style.maxHeight && panel.style.maxHeight !== "0px";
+  panel.style.maxHeight = isOpen ? "0px" : panel.scrollHeight + 40 + "px";
+  const storyBody = btn.closest(".story-body");
+  setTimeout(()=>{ storyBody.style.maxHeight = storyBody.scrollHeight + "px"; }, 310);
+}
+function quickAsk(btn, question){
+  const panelInner = btn.closest(".ask-panel-inner");
+  const input = panelInner.querySelector(".ask-input");
+  input.value = question;
+  const storyId = panelInner.closest(".story").dataset.storyId;
+  submitAsk(input, storyId);
+}
+async function submitAsk(input, storyId){
+  const query = input.value.trim();
+  if(!query) return;
+  const s = STORIES.find(x=>x.id===storyId);
+  const panel = input.closest(".ask-panel-inner");
+  const answer = panel.querySelector(".ask-answer");
+  answer.textContent = "Thinking…";
+  answer.classList.add("visible");
+  input.value = "";
+  const result = await askSimplify(s, query);
+  answer.textContent = result;
+  const storyBody = input.closest(".story-body");
+  const ap = input.closest(".ask-panel");
+  ap.style.maxHeight = ap.scrollHeight + "px";
+  storyBody.style.maxHeight = storyBody.scrollHeight + "px";
+}
+function toggleSave(id, btn){
+  const st = storyState(id);
+  st.saved = !st.saved;
+  saveState();
+  btn.classList.toggle("saved", st.saved);
+  const svg = btn.querySelector("svg");
+  svg.setAttribute("fill", st.saved ? "currentColor" : "none");
+  showToast(st.saved ? "Saved for later" : "Removed from saved");
+}
+function markUnderstood(id, btn){
+  const s = STORIES.find(x=>x.id===id);
+  const st = storyState(id);
+  if(st.read) return;
+  st.read = true;
+  addPoints(10);
+  s.concepts.forEach(addConcept);
+  archiveTodayIfNeeded();
+  updateStreak();
+  saveState();
+  const row = btn.closest(".story-done-row");
+  row.innerHTML = `<span class="story-done-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Understood</span>`;
+  showToast("Marked understood · +10 knowledge points");
+  refreshChrome();
+}
+
+function addPoints(n){ state.points += n; }
+function addConcept(name){ if(!state.concepts.includes(name)) state.concepts.push(name); }
+
+function archiveTodayIfNeeded(){
+  const today = todayStr();
+  let entry = state.archive.find(a => a.date === today);
+  if(!entry){
+    entry = { date:today, storyIds:[] };
+    state.archive.unshift(entry);
+  }
+  const readTodayIds = getTodayStories().filter(s=>storyState(s.id).read).map(s=>s.id);
+  entry.storyIds = Array.from(new Set([...entry.storyIds, ...readTodayIds]));
+}
+
+function updateStreak(){
+  const today = todayStr();
+  if(state.lastCompletedDate === today) return; // already counted today
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+  if(state.lastCompletedDate === yesterday){
+    state.streak += 1;
+  } else {
+    state.streak = 1;
+  }
+  state.lastCompletedDate = today;
+}
+
+/* ============================================================
+   ARCHIVE VIEW
+   ============================================================ */
+function renderArchive(){
+  const container = document.getElementById("archive-list");
+  if(!state.archive.length){
+    container.innerHTML = `<div class="empty-state">Nothing archived yet — briefs you complete in Today will show up here.</div>`;
+    return;
+  }
+  container.innerHTML = state.archive.map(entry => {
+    const stories = entry.storyIds.map(id => STORIES.find(s=>s.id===id)).filter(Boolean);
+    const summary = stories.map(s=>s.headline).join(" · ") || "In progress";
+    return `<div class="archive-item" onclick="switchView('today', document.querySelector('[data-view=today]'))">
+      <div class="archive-date">${formatDate(entry.date)}</div>
+      <div class="archive-summary">${summary}</div>
+      <div class="archive-count">${stories.length} ${stories.length===1?'story':'stories'}</div>
+    </div>`;
+  }).join("");
+}
+function formatDate(d){
+  const date = new Date(d + "T00:00:00");
+  return date.toLocaleDateString(undefined, { month:"short", day:"numeric" });
+}
+
+/* ============================================================
+   COMPOUNDS VIEW
+   ============================================================ */
+function renderCompounds(){
+  document.getElementById("compound-streak-num").textContent = state.streak;
+  document.getElementById("compound-points").textContent = `${state.points} knowledge points`;
+  const readCount = Object.values(state.stories).filter(s=>s.read).length;
+  document.getElementById("stat-briefs").textContent = readCount;
+  document.getElementById("stat-concepts").textContent = state.concepts.length;
+  const attempted = Object.values(state.stories).filter(s=>s.quizAttempted);
+  const correct = attempted.filter(s=>s.quizCorrect);
+  document.getElementById("stat-quiz").textContent = attempted.length ? Math.round(100*correct.length/attempted.length) + "%" : "—";
+  document.getElementById("stat-saved").textContent = Object.values(state.stories).filter(s=>s.saved).length;
+
+  const cloud = document.getElementById("concept-cloud");
+  cloud.innerHTML = state.concepts.length
+    ? state.concepts.map(c=>`<span class="concept-chip">${c}</span>`).join("")
+    : `<div class="empty-state" style="padding:20px 0;">Concepts you learn from stories will appear here.</div>`;
+}
+
+/* ============================================================
+   SETTINGS VIEW
+   ============================================================ */
+function renderSettings(){
+  const timeWrap = document.getElementById("settings-time");
+  timeWrap.innerHTML = TIMES.map(t=>`<button class="${state.profile.time===t.v?'active':''}" onclick="setTime('${t.v}')">${t.label}</button>`).join("");
+  const depthWrap = document.getElementById("settings-depth");
+  depthWrap.innerHTML = DEPTHS.map(d=>`<button class="${state.profile.depth===d.v?'active':''}" onclick="setDepth('${d.v}')">${d.label}</button>`).join("");
+  const interestWrap = document.getElementById("settings-interests");
+  interestWrap.innerHTML = INTERESTS.map(i=>`<span class="pill ${state.profile.interests.includes(i)?'active':''}" onclick="toggleInterest('${i}', this)">${i}</span>`).join("");
+  document.getElementById("settings-account-label").textContent = state.account?.name ? `${state.account.name} · ${state.account.method}` : "Not saved yet";
+}
+function setTime(v){ state.profile.time = v; saveState(); renderSettings(); renderToday(); }
+function setDepth(v){ state.profile.depth = v; saveState(); renderSettings(); }
+function toggleInterest(i, el){
+  const idx = state.profile.interests.indexOf(i);
+  if(idx>=0) state.profile.interests.splice(idx,1); else state.profile.interests.push(i);
+  saveState();
+  el.classList.toggle("active");
+  renderToday();
+}
+function saveAccount(){
+  const name = prompt("Name for this beta account:", state.account?.name || "");
+  if(name === null) return;
+  state.account = { name: name || "You", method:"Local beta" };
+  saveState();
+  renderSettings();
+  refreshChrome();
+  showToast("Progress saved to this device");
+}
+function resetEverything(){
+  if(!confirm("This clears your simplify profile and history on this device. Continue?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+function handleSearch(query){
+  const q = query.trim().toLowerCase();
+  if(!q){ renderToday(); return; }
+  const matches = STORIES.filter(s =>
+    s.headline.toLowerCase().includes(q) ||
+    s.summary.toLowerCase().includes(q) ||
+    s.concepts.some(c=>c.toLowerCase().includes(q))
+  );
+  const container = document.getElementById("today-stories");
+  document.getElementById("today-meta").textContent = `${matches.length} result${matches.length===1?'':'s'} for "${query}"`;
+  container.innerHTML = matches.length ? matches.map(storyHTML).join("") : `<div class="empty-state">No stories match "${query}".</div>`;
+  document.getElementById("today-caught-up").style.display = "none";
+}
+
+/* ============================================================
+   CHROME / NAV
+   ============================================================ */
+function switchView(id, btn){
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById("view-"+id).classList.add("active");
+  if(id==="archive") renderArchive();
+  if(id==="compounds") renderCompounds();
+  if(id==="settings") renderSettings();
+  if(id==="today") renderToday();
+}
+function refreshChrome(){
+  const name = state.account?.name || "You";
+  document.getElementById("sidebar-name").textContent = name;
+  document.getElementById("sidebar-avatar").textContent = name.charAt(0).toUpperCase();
+  document.getElementById("sidebar-streak").textContent = `Day ${state.streak} streak`;
+  document.getElementById("topbar-streak-chip").textContent = `${state.streak} day streak`;
+  document.getElementById("topbar-date").textContent = new Date().toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+}
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("visible");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> t.classList.remove("visible"), 2200);
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function initApp(){
+  refreshChrome();
+  renderToday();
+}
+(function boot(){
+  renderOnboardingOptions();
+  if(state.onboarded){
+    document.getElementById("onboarding").style.display = "none";
+    document.getElementById("app").classList.add("active");
+    initApp();
+  }
+})();
+</script>
+
+</body>
+</html>

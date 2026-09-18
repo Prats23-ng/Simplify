@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>simplify — Daily Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFA;
+    --sidebar:#F3F4F6;
+    --surface:#FFFFFF;
+    --border:rgba(10,10,10,0.08);
+    --border-soft:rgba(10,10,10,0.05);
+    --primary:#4F46E5;
+    --primary-soft:rgba(79,70,229,0.08);
+    --primary-soft2:rgba(79,70,229,0.14);
+    --ink:#0A0A0A;
+    --muted:#6B7280;
+    --green:#16A34A;
+    --amber:#B45309;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; height:100%;}
+  body{
+    font-family:'Inter',sans-serif; background:var(--bg); color:var(--ink);
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  h1,h2,h3,.display{font-family:'Manrope',sans-serif; letter-spacing:-0.015em; margin:0;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  a{color:inherit; text-decoration:none;}
+  input,textarea{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--primary); outline-offset:2px; border-radius:6px;}
+  ::-webkit-scrollbar{width:8px;} ::-webkit-scrollbar-thumb{background:rgba(10,10,10,0.12); border-radius:8px;}
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);}
+
+  #shell{display:flex; height:100vh; width:100vw;}
+
+  /* ---------------- SIDEBAR ---------------- */
+  #sidebar{
+    width:236px; flex-shrink:0; background:var(--sidebar); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:20px 14px; transition:width .2s ease, padding .2s ease;
+  }
+  #sidebar.collapsed{ width:72px; padding:20px 10px; }
+  .brand{ font-size:18px; font-weight:800; letter-spacing:-0.02em; padding:6px 10px 22px; white-space:nowrap; overflow:hidden; display:flex; align-items:center; gap:5px;}
+  .brand::after{ content:''; width:5px; height:5px; border-radius:50%; background:var(--primary); }
+  #sidebar.collapsed .brand{ opacity:0; }
+  .nav-group{ display:flex; flex-direction:column; gap:2px; }
+  .nav-item{
+    display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;
+    font-size:14px; font-weight:600; color:var(--muted); transition:background .15s ease, color .15s ease;
+    white-space:nowrap; overflow:hidden; width:100%; text-align:left; position:relative;
+  }
+  .nav-item svg{ flex-shrink:0; width:17px; height:17px; }
+  .nav-item:hover{ background:rgba(10,10,10,0.045); color:var(--ink); }
+  .nav-item.active{ background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(10,10,10,0.05); }
+  .nav-item.active svg{ color:var(--primary); }
+  .nav-label{ transition:opacity .15s ease; flex:1; }
+  #sidebar.collapsed .nav-label{ opacity:0; width:0; }
+  .nav-badge{ font-size:10.5px; font-weight:700; color:var(--primary); background:var(--primary-soft); padding:2px 6px; border-radius:999px; }
+  #sidebar.collapsed .nav-badge{ display:none; }
+
+  .sidebar-spacer{ flex:1; }
+  .sidebar-foot{
+    border-top:1px solid var(--border); padding-top:14px; display:flex; align-items:center; gap:10px;
+  }
+  .avatar{
+    width:32px; height:32px; border-radius:50%; background:var(--primary); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;
+  }
+  .sidebar-user{ overflow:hidden; white-space:nowrap; flex:1; }
+  #sidebar.collapsed .sidebar-user{ display:none; }
+  .sidebar-user .name{ font-size:13.5px; font-weight:700; }
+  .sidebar-user .streak{ font-size:11.5px; color:var(--primary); font-weight:600; }
+  .collapse-btn{
+    margin-top:12px; display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:8px; border-radius:8px; color:var(--muted); font-size:12px; font-weight:600;
+    transition:background .15s ease;
+  }
+  .collapse-btn:hover{ background:rgba(10,10,10,0.045); }
+  .collapse-btn svg{ transition:transform .2s ease; }
+  #sidebar.collapsed .collapse-btn svg{ transform:rotate(180deg); }
+
+  /* ---------------- MAIN ---------------- */
+  #main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  #topbar{
+    height:64px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
+    padding:0 28px; border-bottom:1px solid var(--border);
+  }
+  .topbar-date{ font-size:13.5px; color:var(--muted); font-weight:500; }
+  .topbar-right{ display:flex; align-items:center; gap:14px; }
+  .search-pill{
+    display:flex; align-items:center; gap:8px; background:var(--sidebar); border:1px solid var(--border);
+    border-radius:999px; padding:7px 14px; font-size:13px; color:var(--muted); font-weight:500; min-width:220px;
+    transition:border-color .15s ease;
+  }
+  .search-pill:focus-within{ border-color:var(--primary); }
+  .search-pill svg{ color:var(--muted); flex-shrink:0; }
+  .search-pill input{ border:none; background:none; outline:none; font-size:13px; color:var(--ink); width:100%; font-weight:500; }
+  .search-pill input::placeholder{ color:var(--muted); }
+  .streak-chip{
+    display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--primary);
+    background:var(--primary-soft); padding:6px 12px; border-radius:999px;
+  }
+  .points-chip{
+    display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700; color:var(--amber);
+    background:rgba(180,83,9,0.08); padding:6px 12px; border-radius:999px;
+  }
+
+  #view-container{ flex:1; overflow-y:auto; }
+  .view{ display:none; padding:44px 32px 80px; }
+  .view.active{ display:block; animation:fadeIn .25s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .reading-col{ max-width:680px; margin:0 auto; }
+  .wide-col{ max-width:920px; margin:0 auto; }
+
+  .view-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; }
+  .view-title{ font-size:22px; font-weight:800; }
+  .view-sub{ font-size:13px; color:var(--muted); font-weight:500; margin-top:3px; }
+
+  /* ---------------- TODAY VIEW ---------------- */
+  .greeting{ font-size:15px; color:var(--muted); font-weight:500; margin-bottom:4px; }
+  .brief-title{ font-size:clamp(24px,3vw,30px); font-weight:800; margin-bottom:8px; }
+  .brief-meta{ font-size:13.5px; color:var(--muted); font-weight:500; margin-bottom:8px; }
+  .brief-progress-row{ display:flex; align-items:center; gap:10px; margin-bottom:32px; }
+  .brief-progress-track{ flex:1; height:5px; border-radius:99px; background:var(--border); overflow:hidden; }
+  .brief-progress-fill{ height:100%; background:var(--primary); border-radius:99px; transition:width .4s ease; }
+  .brief-progress-label{ font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap; }
+
+  .story{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:26px 28px; margin-bottom:16px; transition:box-shadow .2s ease, border-color .2s ease; cursor:pointer;
+  }
+  .story:hover{ border-color:rgba(79,70,229,0.28); }
+  .story.read{ opacity:0.72; }
+  .story-top-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .story-tag-row{ display:flex; align-items:center; gap:8px; }
+  .story-tag{
+    display:inline-flex; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--primary); background:var(--primary-soft); padding:4px 10px; border-radius:6px;
+  }
+  .story-readtime{ font-size:12px; color:var(--muted); font-weight:600; }
+  .story-check{ display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; color:var(--green); }
+  .story-headline{ font-size:19px; font-weight:700; line-height:1.35; margin-bottom:8px; }
+  .story-dek{ font-size:14px; line-height:1.55; color:#4B5563; margin-bottom:14px; }
+  .story-relevance{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--primary); font-weight:600; margin-bottom:2px; }
+  .story-concepts-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+  .concept-chip{ font-size:11px; font-weight:700; color:var(--muted); background:var(--sidebar); border:1px solid var(--border); padding:3px 9px; border-radius:999px; }
+  .concept-chip.known{ color:var(--primary); background:var(--primary-soft); border-color:rgba(79,70,229,0.2); }
+  .story-actions{ display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-soft); }
+  .story-open-cta{ font-size:13px; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:5px; }
+  .icon-btn{ width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--muted); transition:background .15s ease, color .15s ease; }
+  .icon-btn:hover{ background:var(--sidebar); color:var(--ink); }
+  .icon-btn.saved{ color:var(--primary); }
+
+  .caught-up{
+    display:flex; flex-direction:column; align-items:center; gap:6px; justify-content:center; font-size:13.5px; font-weight:600;
+    color:var(--muted); padding:30px 0 6px; text-align:center;
+  }
+  .caught-up .headline{ display:flex; align-items:center; gap:8px; font-size:14.5px; color:var(--ink); }
+  .caught-up svg{ color:var(--green); }
+  .caught-up .sub{ font-size:12.5px; color:var(--muted); max-width:340px; }
+
+  /* ---------------- STORY DEEP DIVE (overlay) ---------------- */
+  #story-overlay{
+    position:fixed; inset:0; background:rgba(10,10,10,0.32); z-index:50; display:none;
+    align-items:flex-start; justify-content:center; padding:40px 24px; overflow-y:auto;
+  }
+  #story-overlay.active{ display:flex; animation:overlayIn .18s ease; }
+  @keyframes overlayIn{ from{opacity:0;} to{opacity:1;} }
+  #story-panel{
+    background:var(--surface); border-radius:22px; width:100%; max-width:720px; max-height:calc(100vh - 80px);
+    overflow-y:auto; box-shadow:0 30px 90px -20px rgba(10,10,10,0.35); animation:panelIn .25s cubic-bezier(.2,.9,.3,1);
+  }
+  @keyframes panelIn{ from{opacity:0; transform:translateY(16px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);} }
+  .sd-head{ position:sticky; top:0; background:var(--surface); z-index:2; display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--border); }
+  .sd-head-left{ display:flex; align-items:center; gap:10px; }
+  .sd-close{ width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--muted); background:var(--sidebar); }
+  .sd-close:hover{ color:var(--ink); }
+  .sd-body{ padding:8px 30px 36px; }
+  .sd-tag{ display:inline-flex; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--primary); background:var(--primary-soft); padding:4px 10px; border-radius:6px; margin:18px 0 14px; }
+  .sd-headline{ font-size:26px; font-weight:800; line-height:1.28; margin-bottom:10px; }
+  .sd-meta{ font-size:12.5px; color:var(--muted); font-weight:600; margin-bottom:26px; display:flex; gap:14px; align-items:center; }
+  .sd-section{ margin-bottom:26px; }
+  .sd-section-label{ font-size:11.5px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:flex; align-items:center; gap:7px; }
+  .sd-section-label svg{ width:14px; height:14px; }
+  .sd-section-text{ font-size:15px; line-height:1.68; color:#1F2937; }
+  .sd-affected-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .sd-affected-pill{ font-size:12.5px; font-weight:600; background:var(--sidebar); border:1px solid var(--border); padding:6px 12px; border-radius:999px; color:#374151; }
+  .sd-connection{
+    display:flex; gap:10px; background:var(--primary-soft); border:1px solid rgba(79,70,229,0.18); border-radius:12px;
+    padding:14px 16px; margin-bottom:26px; font-size:13.5px; line-height:1.55; color:#312E81;
+  }
+  .sd-connection svg{ flex-shrink:0; color:var(--primary); margin-top:1px; }
+  .sd-concepts-list{ display:flex; flex-direction:column; gap:10px; }
+  .sd-concept-item{ display:flex; align-items:baseline; gap:8px; font-size:14px; line-height:1.55; }
+  .sd-concept-term{ font-weight:700; color:var(--ink); flex-shrink:0; }
+  .sd-concept-def{ color:#4B5563; }
+  .sd-sources{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .sd-source-pill{ font-size:12px; font-weight:600; color:var(--muted); background:var(--sidebar); padding:5px 11px; border-radius:999px; border:1px solid var(--border); }
+
+  /* Ask Simplify (in story panel) */
+  .ask-box{ background:var(--sidebar); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin-top:8px; }
+  .ask-box-title{ font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px; margin-bottom:12px; color:var(--ink); }
+  .ask-box-title svg{ color:var(--primary); }
+  .ask-suggestions{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px; }
+  .ask-chip{ font-size:12px; font-weight:600; color:var(--muted); background:var(--surface); border:1px solid var(--border); padding:6px 11px; border-radius:999px; transition:all .15s ease; }
+  .ask-chip:hover{ border-color:rgba(79,70,229,0.35); color:var(--primary); }
+  .ask-input-row{ display:flex; gap:8px; }
+  .ask-input{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:10px 16px; font-size:13.5px; outline:none; color:var(--ink); }
+  .ask-input:focus{ border-color:var(--primary); }
+  .ask-send{ width:38px; height:38px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:transform .15s ease; }
+  .ask-send:hover{ transform:scale(1.06); }
+  .ask-thread{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+  .ask-qa{ display:flex; flex-direction:column; gap:8px; }
+  .ask-q{ align-self:flex-end; font-size:13px; font-weight:600; background:var(--primary); color:#fff; padding:9px 14px; border-radius:14px 14px 2px 14px; max-width:85%; }
+  .ask-a{ font-size:13.5px; line-height:1.6; color:#1F2937; background:var(--surface); border:1px solid var(--border); border-radius:14px 14px 14px 2px; padding:12px 15px; max-width:92%; }
+  .ask-a.thinking{ color:var(--muted); font-style:italic; }
+
+  .sd-footer{ display:flex; align-items:center; justify-content:space-between; padding-top:22px; margin-top:8px; border-top:1px solid var(--border-soft); }
+  .mark-done-btn{ display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:700; color:#fff; background:var(--ink); padding:11px 20px; border-radius:999px; transition:transform .15s ease; }
+  .mark-done-btn:hover{ transform:translateY(-1px); }
+  .mark-done-btn.done{ background:var(--green); }
+  .sd-footer-actions{ display:flex; gap:8px; }
+
+  /* ---------------- EXPLORE VIEW ---------------- */
+  .explore-search{
+    display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:13px 18px; margin-bottom:22px;
+  }
+  .explore-search svg{ color:var(--muted); flex-shrink:0; }
+  .explore-search input{ border:none; outline:none; background:none; flex:1; font-size:14.5px; color:var(--ink); }
+  .explore-filter-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:26px; }
+  .filter-pill{ font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:999px; background:var(--surface); color:var(--muted); border:1px solid var(--border); }
+  .filter-pill.active{ background:var(--primary-soft); color:var(--primary); border-color:rgba(79,70,229,0.3); }
+  .explore-section-title{ font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:26px 0 12px; }
+  .explore-list .story{ margin-bottom:12px; padding:20px 22px; }
+  .explore-list .story-headline{ font-size:16px; margin-bottom:6px; }
+  .explore-list .story-dek{ font-size:13px; margin-bottom:8px; }
+  .no-results{ text-align:center; padding:60px 0; color:var(--muted); font-size:13.5px; }
+
+  /* ---------------- ARCHIVE VIEW ---------------- */
+  .archive-item{
+    display:flex; align-items:center; justify-content:space-between; padding:18px 22px;
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; margin-bottom:10px;
+    cursor:pointer; transition:border-color .15s ease, transform .15s ease;
+  }
+  .archive-item:hover{ border-color:rgba(79,70,229,0.3); transform:translateX(2px); }
+  .archive-date{ font-size:13px; font-weight:700; color:var(--muted); width:110px; flex-shrink:0; }
+  .archive-summary{ flex:1; font-size:14px; font-weight:500; color:var(--ink); }
+  .archive-count{ font-size:12.5px; color:var(--muted); font-weight:600; flex-shrink:0; }
+
+  /* ---------------- SAVED / HISTORY tabs ---------------- */
+  .tab-row{ display:flex; gap:4px; background:var(--sidebar); padding:4px; border-radius:12px; width:fit-content; margin-bottom:22px; }
+  .tab-btn{ font-size:13px; font-weight:700; padding:8px 16px; border-radius:9px; color:var(--muted); }
+  .tab-btn.active{ background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(10,10,10,0.06); }
+  .empty-state{ text-align:center; padding:70px 20px; color:var(--muted); }
+  .empty-state .e-icon{ margin-bottom:14px; opacity:.5; }
+  .empty-state .e-title{ font-size:15px; font-weight:700; color:var(--ink); margin-bottom:6px; }
+  .empty-state .e-sub{ font-size:13px; max-width:320px; margin:0 auto; }
+
+  /* ---------------- COMPOUNDS VIEW ---------------- */
+  .compound-hero{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:30px 32px; margin-bottom:24px;
+  }
+  .compound-hero-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px; }
+  .compound-num{ font-size:38px; font-weight:800; font-family:'Manrope',sans-serif; color:var(--primary); }
+  .compound-label{ font-size:13px; color:var(--muted); font-weight:600; }
+  .heatmap{ display:grid; grid-template-columns:repeat(26,1fr); gap:4px; }
+  .heatmap .cell{ aspect-ratio:1; border-radius:3px; background:rgba(79,70,229,0.08); }
+  .heatmap .cell.l1{ background:rgba(79,70,229,0.28); }
+  .heatmap .cell.l2{ background:rgba(79,70,229,0.55); }
+  .heatmap .cell.l3{ background:rgba(79,70,229,0.9); }
+  .compound-stats-row{ display:flex; gap:28px; margin-top:20px; padding-top:18px; border-top:1px solid var(--border-soft); flex-wrap:wrap; }
+  .compound-stat .n{ font-size:20px; font-weight:800; }
+  .compound-stat .l{ font-size:12px; color:var(--muted); font-weight:600; margin-top:2px; }
+  .compound-note{ font-size:13.5px; color:var(--muted); line-height:1.6; max-width:560px; }
+
+  .concept-map-title{ font-size:15px; font-weight:700; margin:32px 0 6px; }
+  .concept-map-sub{ font-size:13px; color:var(--muted); margin-bottom:18px; }
+  .concept-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
+  .concept-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; }
+  .concept-card .term{ font-size:14.5px; font-weight:700; margin-bottom:5px; }
+  .concept-card .def{ font-size:12.5px; color:var(--muted); line-height:1.5; margin-bottom:10px; }
+  .concept-card .meta{ font-size:11px; font-weight:700; color:var(--primary); display:flex; align-items:center; gap:5px; }
+
+  /* ---------------- PROFILE / SETTINGS VIEW ---------------- */
+  .settings-section{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:26px 28px; margin-bottom:16px;
+  }
+  .settings-title{ font-size:15px; font-weight:700; margin-bottom:16px; }
+  .settings-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid var(--border-soft); gap:20px; }
+  .settings-row:first-of-type{ border-top:none; padding-top:0; }
+  .settings-row-label{ font-size:14px; font-weight:600; }
+  .settings-row-sub{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .segmented{ display:flex; background:var(--sidebar); border-radius:10px; padding:3px; gap:2px; flex-shrink:0; }
+  .segmented button{ padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; color:var(--muted); white-space:nowrap; }
+  .segmented button.active{ background:var(--surface); color:var(--ink); box-shadow:0 1px 2px rgba(10,10,10,0.06); }
+  .pill-toggle{ display:flex; flex-wrap:wrap; gap:8px; }
+  .pill-toggle .pill{ font-size:12.5px; font-weight:600; padding:6px 13px; border-radius:999px; background:var(--sidebar); color:var(--muted); border:1px solid var(--border); cursor:pointer; }
+  .pill-toggle .pill.active{ background:var(--primary-soft); color:var(--primary); border-color:rgba(79,70,229,0.3); }
+  .reset-btn{ font-size:12.5px; font-weight:700; color:#B91C1C; }
+
+  .toast{ position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; font-size:13px; font-weight:600; padding:11px 20px; border-radius:999px; opacity:0; pointer-events:none; transition:all .25s ease; z-index:80; }
+  .toast.visible{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  @media (max-width:860px){
+    #sidebar{ position:fixed; z-index:20; height:100vh; }
+    #sidebar:not(.collapsed){ box-shadow:0 0 40px rgba(0,0,0,0.15); }
+  }
+</style>
+</head>
+<body>
+
+<div id="shell">
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="brand">simplify</div>
+    <nav class="nav-group">
+      <button class="nav-item active" data-view="today" onclick="switchView('today', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+        <span class="nav-label">Today</span>
+      </button>
+      <button class="nav-item" data-view="explore" onclick="switchView('explore', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span class="nav-label">Explore</span>
+      </button>
+      <button class="nav-item" data-view="archive" onclick="switchView('archive', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M4 8v11a1 1 0 001 1h14a1 1 0 001-1V8M9 13h6"/></svg>
+        <span class="nav-label">Archive</span>
+      </button>
+      <button class="nav-item" data-view="saved" onclick="switchView('saved', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+        <span class="nav-label">Saved &amp; History</span>
+      </button>
+      <button class="nav-item" data-view="compounds" onclick="switchView('compounds', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/></svg>
+        <span class="nav-label">Knowledge Compounds</span>
+      </button>
+      <button class="nav-item" data-view="settings" onclick="switchView('settings', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009.2 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3.5a2 2 0 110-4H3.5A1.65 1.65 0 005 9a1.65 1.65 0 00-.33-1.82l-.06-.06A2 2 0 117.44 4.3l.06.06A1.65 1.65 0 009.2 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09A1.65 1.65 0 0015 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09A1.65 1.65 0 0019.4 15z"/></svg>
+        <span class="nav-label">Profile</span>
+      </button>
+    </nav>
+    <div class="sidebar-spacer"></div>
+    <button class="collapse-btn" onclick="toggleSidebar()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>
+      <span class="nav-label">Collapse</span>
+    </button>
+    <div class="sidebar-foot">
+      <div class="avatar" id="sidebar-avatar">A</div>
+      <div class="sidebar-user">
+        <div class="name" id="sidebar-name">Alex</div>
+        <div class="streak" id="sidebar-streak">Day 1 streak</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <div class="topbar-date" id="topbar-date">—</div>
+      <div class="topbar-right">
+        <div class="search-pill" onclick="document.getElementById('global-search-input').focus()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="global-search-input" type="text" placeholder="Search stories or concepts…" onkeydown="if(event.key==='Enter') globalSearch(this.value)">
+        </div>
+        <div class="points-chip" id="points-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
+          <span id="points-count">0</span> pts
+        </div>
+        <div class="streak-chip" id="streak-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1 4-1 6 0 1.5 1 2 2 2 1.5 0 2-1.5 1.5-3 2 1 4 4 4 7a6.5 6.5 0 01-13 0c0-4 2-7 6.5-12z"/></svg>
+          <span id="streak-count">1</span> day streak
+        </div>
+      </div>
+    </div>
+
+    <div id="view-container">
+
+      <!-- TODAY VIEW -->
+      <section class="view active" id="view-today">
+        <div class="reading-col">
+          <div class="greeting" id="greeting-text">Good morning.</div>
+          <div class="brief-title">Today's Brief</div>
+          <div class="brief-meta" id="brief-meta-text">— stories · — min read</div>
+          <div class="brief-progress-row">
+            <div class="brief-progress-track"><div class="brief-progress-fill" id="brief-progress-fill" style="width:0%"></div></div>
+            <div class="brief-progress-label" id="brief-progress-label">0 of 0 understood</div>
+          </div>
+          <div id="today-story-list"></div>
+          <div id="today-caught-up" class="caught-up" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            <div class="headline">You're caught up.</div>
+            <div class="sub">Come back tomorrow for a new brief — your understanding compounds either way.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXPLORE VIEW -->
+      <section class="view" id="view-explore">
+        <div class="wide-col">
+          <div class="view-head">
+            <div>
+              <div class="view-title">Explore</div>
+              <div class="view-sub">Beyond today's brief — search, browse by topic, or revisit anything.</div>
+            </div>
+          </div>
+          <div class="explore-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="explore-search-input" type="text" placeholder="Search stories, companies, concepts…" oninput="renderExplore()">
+          </div>
+          <div class="explore-filter-row" id="explore-filters"></div>
+          <div id="explore-results"></div>
+        </div>
+      </section>
+
+      <!-- ARCHIVE VIEW -->
+      <section class="view" id="view-archive">
+        <div class="wide-col">
+          <div class="view-head">
+            <div>
+              <div class="view-title">Archive</div>
+              <div class="view-sub">Every past brief, in order.</div>
+            </div>
+          </div>
+          <div id="archive-list"></div>
+        </div>
+      </section>
+
+      <!-- SAVED & HISTORY VIEW -->
+      <section class="view" id="view-saved">
+        <div class="wide-col">
+          <div class="view-head">
+            <div>
+              <div class="view-title">Saved &amp; History</div>
+              <div class="view-sub">Stories you kept, and everything you've read.</div>
+            </div>
+          </div>
+          <div class="tab-row">
+            <button class="tab-btn active" data-tab="saved" onclick="switchSavedTab('saved', this)">Saved</button>
+            <button class="tab-btn" data-tab="history" onclick="switchSavedTab('history', this)">Read history</button>
+          </div>
+          <div id="saved-history-content"></div>
+        </div>
+      </section>
+
+      <!-- COMPOUNDS VIEW -->
+      <section class="view" id="view-compounds">
+        <div class="wide-col">
+          <div class="view-head">
+            <div>
+              <div class="view-title">Knowledge Compounds</div>
+              <div class="view-sub">The news changes every day. Your understanding compounds.</div>
+            </div>
+          </div>
+          <div class="compound-hero">
+            <div class="compound-hero-top">
+              <div>
+                <div class="compound-num" id="compound-streak-num">1</div>
+                <div class="compound-label">day streak</div>
+              </div>
+              <div class="compound-label">Last 26 weeks</div>
+            </div>
+            <div class="heatmap" id="heatmap"></div>
+            <div class="compound-stats-row">
+              <div class="compound-stat"><div class="n" id="stat-briefs">0</div><div class="l">briefs understood</div></div>
+              <div class="compound-stat"><div class="n" id="stat-concepts">0</div><div class="l">concepts learned</div></div>
+              <div class="compound-stat"><div class="n" id="stat-time">0 min</div><div class="l">time invested</div></div>
+              <div class="compound-stat"><div class="n" id="stat-points">0</div><div class="l">knowledge points</div></div>
+            </div>
+          </div>
+          <p class="compound-note">Knowledge compounds like investing. Small, consistent five-minute mornings become sharper judgement over months — this is simply a record of that, not a score to chase.</p>
+
+          <div class="concept-map-title">Concepts you've learned</div>
+          <div class="concept-map-sub" id="concept-map-sub">Tap a concept to see the stories that taught it to you.</div>
+          <div class="concept-grid" id="concept-grid"></div>
+        </div>
+      </section>
+
+      <!-- PROFILE / SETTINGS VIEW -->
+      <section class="view" id="view-settings">
+        <div class="wide-col">
+          <div class="view-head">
+            <div>
+              <div class="view-title">Profile &amp; Preferences</div>
+              <div class="view-sub">This shapes what Simplify shows you, and how it explains things.</div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">You are a</div>
+            <div class="pill-toggle" id="profile-role-toggle"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Reading time</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">How much time do you have most mornings?</div>
+                <div class="settings-row-sub">This shapes how long your daily brief is.</div>
+              </div>
+              <div class="segmented" id="reading-time-toggle"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Explanation depth</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">How much do you already know about markets &amp; finance?</div>
+                <div class="settings-row-sub">Controls how much jargon Simplify explains vs. assumes.</div>
+              </div>
+              <div class="segmented" id="depth-toggle"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Interests</div>
+            <div class="pill-toggle" id="interests-toggle"></div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Delivery</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">Daily delivery time</div>
+                <div class="settings-row-sub">When your brief is ready each morning.</div>
+              </div>
+              <div class="segmented" id="delivery-toggle"></div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Account</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label" id="profile-email">—</div>
+                <div class="settings-row-sub" id="profile-authmethod">Simulated session</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">Data</div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-row-label">Reset your Simplify data</div>
+                <div class="settings-row-sub">Clears streak, saved stories, concepts and preferences from this browser.</div>
+              </div>
+              <button class="reset-btn" onclick="resetAllData()">Reset everything</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- STORY DEEP DIVE OVERLAY -->
+<div id="story-overlay" onclick="if(event.target===this) closeStory()">
+  <div id="story-panel"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   DATA LAYER — mock news dataset. Shaped so a real news API /
+   real LLM can later be swapped in behind fetchStories()/askAI().
+   ============================================================ */
+
+const CATEGORIES = ['Markets','Economy','Business','Policy','Global','Finance'];
+
+const CONCEPT_LIBRARY = {
+  'repo-rate': { term:'Repo rate', def:'The interest rate at which the central bank lends short-term money to commercial banks. Cutting it makes borrowing cheaper economy-wide.' },
+  'bond-yields': { term:'Bond yields', def:'The return an investor earns on a bond. Yields fall when bond prices rise — often when rates are cut or expected to fall.' },
+  'nim': { term:'NIM (Net Interest Margin)', def:'The gap between what a bank earns on loans and pays on deposits — the core measure of a bank\'s lending profitability.' },
+  'monetary-policy': { term:'Monetary policy', def:'The tools a central bank uses — mainly interest rates — to control inflation and support growth.' },
+  'inflation': { term:'Inflation', def:'The rate at which prices for goods and services rise over time, eroding purchasing power.' },
+  'supply-chain': { term:'Supply chain diversification', def:'Spreading manufacturing and sourcing across multiple countries to reduce dependence on any single one.' },
+  'fdi': { term:'FDI (Foreign Direct Investment)', def:'Investment by a foreign company to build or acquire lasting operations in another country.' },
+  'ipo': { term:'IPO (Initial Public Offering)', def:'The first time a private company sells shares to the public, listing on a stock exchange.' },
+  'valuation': { term:'Valuation', def:'An estimate of what a company is worth, often expressed as a multiple of its revenue or profit.' },
+  'current-account-deficit': { term:'Current account deficit', def:'When a country imports more goods, services and capital than it exports, over a given period.' },
+  'yoy': { term:'YoY (Year-on-Year)', def:'A comparison of a figure against the same period one year earlier — used to smooth out seasonal noise.' },
+  'nbfc': { term:'NBFC', def:'Non-Banking Financial Company — lends and invests like a bank but doesn\'t hold a banking licence or take deposits.' },
+  'credit-growth': { term:'Credit growth', def:'The rate at which banks are lending more money into the economy compared to a prior period.' },
+  'gdp': { term:'GDP', def:'Gross Domestic Product — the total value of goods and services a country produces in a period; the standard scorecard for economic size.' },
+  'fii-flows': { term:'FII flows', def:'Money moving in or out of a country\'s markets from Foreign Institutional Investors — a signal of global investor sentiment.' },
+};
+
+// Each story: id, date(YYYY-MM-DD), category, headline, dek, readMins,
+// relevance(why it was picked for this user), sections{whatHappened, why, matters, next},
+// affected[], concepts[](keys into CONCEPT_LIBRARY), sources[], relatedConceptSeen(optional key)
+const STORY_BANK = [
+  {
+    id:'rbi-repo-cut', date:'2026-09-17', category:'Policy',
+    headline:"RBI cuts repo rate by 25 basis points",
+    dek:"India's central bank lowered its key lending rate for the second time this year, citing cooling inflation.",
+    readMins:3,
+    relevance:"Matches your interest in Markets & Policy",
+    whatHappened:"The Reserve Bank of India's Monetary Policy Committee voted 5-1 to cut the repo rate from 6.25% to 6.00%, the rate at which it lends short-term funds to commercial banks.",
+    why:"Retail inflation has stayed below the RBI's 4% target for three straight months, giving the committee room to prioritise growth. Weak private investment and soft urban consumption added pressure to act.",
+    matters:"Lower policy rates typically flow through to cheaper home loans, auto loans and business credit within weeks, though banks don't always pass on the full cut immediately.",
+    next:"Watch bank MCLR announcements over the next 2-4 weeks, and the RBI's next policy meeting for signals on whether more cuts are coming.",
+    affected:['Homebuyers','Existing borrowers','Banks','Fixed-income investors','NBFCs'],
+    concepts:['repo-rate','monetary-policy','inflation'],
+    sources:['RBI Monetary Policy Statement','Reuters','Bloomberg'],
+  },
+  {
+    id:'bank-stocks-rally', date:'2026-09-17', category:'Markets',
+    headline:"Bank stocks rally on rate-cut expectations",
+    dek:"Nifty Bank rose 2.1% as investors priced in wider lending margins ahead of the RBI decision.",
+    readMins:2,
+    relevance:"Follows directly from today's rate decision",
+    whatHappened:"Shares of major private and public sector banks climbed through the session, with the Nifty Bank index closing 2.1% higher, its best single-day gain in six weeks.",
+    why:"Traders anticipated the rate cut and positioned early. Lower funding costs can widen the gap between what banks earn on loans and pay on deposits — at least in the near term.",
+    matters:"A sustained rally in bank stocks often lifts the broader index, since financials carry the heaviest weight on the Nifty and Sensex.",
+    next:"Q2 earnings season over the next month will show whether margins actually held up, or whether competitive pressure eats into the gains.",
+    affected:['Bank shareholders','NBFCs','Mutual fund investors','Retail traders'],
+    concepts:['nim','bond-yields','credit-growth'],
+    relatedConceptSeen:'repo-rate',
+    sources:['NSE data','Economic Times','Bloomberg'],
+  },
+  {
+    id:'apple-india-manufacturing', date:'2026-09-17', category:'Business',
+    headline:"Apple expands manufacturing investment in India",
+    dek:"The company will nearly double iPhone assembly capacity at its Tamil Nadu facilities by 2027.",
+    readMins:3,
+    relevance:"Matches your interest in Business & Technology",
+    whatHappened:"Apple confirmed a new investment round with supplier Foxconn to expand assembly lines in Tamil Nadu, aiming to produce roughly 25% of all iPhones globally from India by 2027.",
+    why:"Apple has been diversifying production away from China since 2020 due to tariff risk, supply disruptions during COVID, and geopolitical tension between the US and China.",
+    matters:"This is one of the largest single FDI commitments into Indian electronics manufacturing, and a vote of confidence in India's manufacturing policy push.",
+    next:"Expect supplier announcements from component makers and new hiring across Apple's assembly ecosystem over the next two quarters.",
+    affected:['Indian suppliers','Local employment','Foxconn','Apple shareholders'],
+    concepts:['supply-chain','fdi'],
+    sources:['Company statement','Reuters','The Economic Times'],
+  },
+  {
+    id:'startup-ipo-wave', date:'2026-09-17', category:'Finance',
+    headline:"Three consumer-tech startups file for IPOs this week",
+    dek:"A food-delivery, a fintech and a D2C beauty brand all filed draft prospectuses within days of each other.",
+    readMins:3,
+    relevance:"Matches your interest in Finance & Startups",
+    whatHappened:"Three well-known consumer startups filed draft red herring prospectuses with SEBI, together seeking to raise over ₹9,000 crore.",
+    why:"Strong public market appetite for new listings this year, plus early investors in these companies looking for an exit after nearly a decade of private funding.",
+    matters:"A cluster of IPOs at once tests how much capital public markets can absorb — and how these companies are being valued relative to profitability, not just growth.",
+    next:"SEBI review typically takes 4-6 weeks; watch anchor investor allocations for an early read on demand.",
+    affected:['Startup employees (ESOPs)','Early VCs','Retail IPO investors','Public market liquidity'],
+    concepts:['ipo','valuation'],
+    sources:['SEBI filings','VCCircle','Mint'],
+  },
+  {
+    id:'rupee-cad', date:'2026-09-16', category:'Economy',
+    headline:"Rupee slips as current account deficit widens",
+    dek:"India's currency touched a two-month low after trade data showed a bigger gap between imports and exports.",
+    readMins:2,
+    relevance:"Matches your interest in Economy",
+    whatHappened:"The rupee weakened to about 84.2 against the US dollar after quarterly trade data showed the current account deficit widening to 1.8% of GDP, from 1.2% the previous quarter.",
+    why:"Higher crude oil imports and softer software-services exports both contributed, while foreign investors pulled some money out of Indian debt markets.",
+    matters:"A weaker rupee makes imports — including oil — more expensive, which can feed back into inflation and complicate the RBI's rate decisions.",
+    next:"Watch crude oil prices and FII flow data over the next few weeks; a stabilising rupee would ease pressure on the RBI.",
+    affected:['Importers','Oil marketing companies','Travellers abroad','RBI policy stance'],
+    concepts:['current-account-deficit','fii-flows','gdp'],
+    sources:['RBI data','Reuters','Business Standard'],
+  },
+  {
+    id:'semiconductor-export-curbs', date:'2026-09-15', category:'Global',
+    headline:"US tightens chip export rules for a second time this year",
+    dek:"New restrictions target advanced AI chips bound for a wider list of countries, reshaping global supply chains.",
+    readMins:4,
+    relevance:"Matches your interest in Global & Technology",
+    whatHappened:"The US Commerce Department expanded restrictions on exporting advanced semiconductors and chip-making equipment, adding several countries to a controlled list.",
+    why:"Washington is trying to slow other nations' access to the most advanced AI-capable chips, citing national security, while allies negotiate exemptions.",
+    matters:"Chipmakers face a smaller addressable market for their most advanced products, and countries affected are accelerating efforts to build domestic alternatives.",
+    next:"Watch for retaliatory trade measures and whether allied nations are granted carve-outs in the coming weeks.",
+    affected:['Chipmakers','Cloud & AI companies','Countries on the restricted list','Global tech supply chains'],
+    concepts:['supply-chain'],
+    sources:['US Commerce Department','Reuters','Financial Times'],
+  },
+  {
+    id:'bank-merger-depositors', date:'2026-09-14', category:'Finance',
+    headline:"Mid-sized private bank merger gets regulatory approval",
+    dek:"The RBI cleared a long-pending merger between two private lenders, creating the country's sixth-largest private bank by assets.",
+    readMins:3,
+    relevance:"Matches your interest in Finance",
+    whatHappened:"The RBI approved the merger of two mid-sized private banks after 18 months of review, creating a combined entity with over ₹4 lakh crore in assets.",
+    why:"Both banks had struggled independently with thin margins; regulators favoured consolidation over a weaker standalone entity that might need bailout support later.",
+    matters:"Existing depositors and borrowers will see account and loan terms migrate to the merged entity, typically with limited disruption but some branch consolidation.",
+    next:"Customers should watch for official communication on account number changes and branch closures over the next two quarters.",
+    affected:['Depositors','Borrowers','Bank employees','Shareholders of both banks'],
+    concepts:['nbfc','nim'],
+    sources:['RBI order','Livemint','Business Standard'],
+  },
+  {
+    id:'inflation-print', date:'2026-09-13', category:'Economy',
+    headline:"Retail inflation eases to 18-month low",
+    dek:"Falling vegetable and fuel prices pulled headline inflation down to 3.4% year-on-year in August.",
+    readMins:2,
+    relevance:"Matches your interest in Economy",
+    whatHappened:"India's Consumer Price Index rose 3.4% year-on-year in August, down from 4.1% in July, driven largely by a sharp fall in vegetable prices.",
+    why:"A good monsoon boosted agricultural supply, while global crude prices stayed soft, easing fuel-linked cost pressures across the economy.",
+    matters:"This is the main data point the RBI watches when deciding whether it has room to cut interest rates further without risking a price spiral.",
+    next:"The next CPI print in a month will show whether this is a durable trend or a seasonal dip tied to the harvest.",
+    affected:['Consumers','RBI policy committee','Fixed-income investors'],
+    concepts:['inflation','yoy'],
+    relatedConceptSeen:'repo-rate',
+    sources:['Ministry of Statistics','Reuters','Mint'],
+  },
+];
+
+/* ============================================================
+   MOCK AI LAYER — contextual, template-based "Ask Simplify".
+   Swap askAI() for a real LLM call later; signature stays the same.
+   ============================================================ */
+function askAI(story, question){
+  const q = question.toLowerCase();
+  const term = (key) => CONCEPT_LIBRARY[key] ? CONCEPT_LIBRARY[key].term.toLowerCase() : '';
+
+  if(/simply|simple|eli5|five.?year.?old|beginner|new to (this|finance)/.test(q)){
+    return `In plain terms: ${story.dek} ${story.matters.split('.')[0]}.`;
+  }
+  if(/why.*(happen|did this)/.test(q)){
+    return story.why;
+  }
+  if(/affect me|impact me|matter to me|should i care/.test(q)){
+    return `Directly, this mostly touches ${story.affected.slice(0,2).join(' and ').toLowerCase()}. ${story.matters}`;
+  }
+  if(/india/.test(q) && story.category === 'Global'){
+    return `For India specifically: this shapes how quickly the country can access or build advanced chip capacity, which feeds into its own AI and electronics manufacturing ambitions. ${story.matters}`;
+  }
+  if(/first|before|background|context/.test(q)){
+    return story.concepts.length
+      ? `Useful background: ${story.concepts.map(k => CONCEPT_LIBRARY[k].term).join(', ')}. Start with ${CONCEPT_LIBRARY[story.concepts[0]].term} — ${CONCEPT_LIBRARY[story.concepts[0]].def}`
+      : story.why;
+  }
+  if(/next|watch|future|then what/.test(q)){
+    return story.next;
+  }
+  for(const key of story.concepts){
+    if(q.includes(term(key)) || q.includes(key.replace(/-/g,' '))){
+      return `${CONCEPT_LIBRARY[key].term}: ${CONCEPT_LIBRARY[key].def}`;
+    }
+  }
+  if(/bank/.test(q)){
+    return `Banks care because it changes their cost of funds and lending margins. ${story.matters}`;
+  }
+  if(/stock market|market|invest/.test(q)){
+    return `Markets tend to react fast to this kind of news because it changes expectations for future earnings or rates. ${story.matters}`;
+  }
+  // default grounded fallback
+  return `Good question. Focusing on "${story.headline}": ${story.matters} If you want, ask me to explain a specific term from this story.`;
+}
+
+const SUGGESTED_QUESTIONS = [
+  "Explain this simply",
+  "Why did this happen?",
+  "How does this affect me?",
+  "What should I understand first?",
+];
+
+/* ============================================================
+   STATE LAYER — persisted to localStorage. Swap for a real
+   backend later by replacing load()/save() only.
+   ============================================================ */
+const STORAGE_KEY = 'simplify_state_v1';
+
+function defaultState(){
+  return {
+    profile: { role:'Working Professional', email:'alex@email.com', authMethod:'Simulated session' },
+    interests: ['Markets','Policy','Business','Finance'],
+    readingTime: '10 min',
+    depth: 'Some knowledge',
+    deliveryTime: '7:00 AM',
+    storiesRead: {},         // id -> { readAt, timeSpentSec }
+    storiesSaved: {},        // id -> true
+    quizResults: {},         // not surfaced as a quiz UI in v1; reserved for future
+    askHistory: {},          // storyId -> [{q,a}]
+    conceptsLearned: {},     // conceptKey -> { firstSeenStoryId, firstSeenDate }
+    points: 0,
+    streak: 1,
+    lastActiveDate: null,
+    searches: [],
+    createdAt: new Date().toISOString(),
+  };
+}
+
+let state = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed);
+  }catch(e){
+    return defaultState();
+  }
+}
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/* ---------- Onboarding handoff ----------
+   The landing/onboarding page lives at a separate published artifact, so it
+   can't rely on sharing localStorage with this one (different sandboxed
+   origins). It instead passes the user's choices as URL params on redirect;
+   this reads them once on load, maps them into this app's state shape, and
+   persists them — so a fresh arrival from onboarding is personalized even
+   with no prior localStorage here. */
+const TIME_CODE_MAP = { '5':'10 min', '10':'10 min', '15':'15+ min' };
+const DEPTH_CODE_MAP = { 'quick':'New to this', 'full':'Advanced' };
+
+function applyOnboardingHandoff(){
+  const params = new URLSearchParams(window.location.search);
+  if(!params.has('role') && !params.has('interests') && !params.has('time') && !params.has('depth')) return;
+
+  const role = params.get('role');
+  const interests = params.get('interests');
+  const time = params.get('time');
+  const depth = params.get('depth');
+
+  if(role) state.profile.role = role;
+  if(interests) state.interests = interests.split(',').map(s=>s.trim()).filter(Boolean);
+  if(time && TIME_CODE_MAP[time]) state.readingTime = TIME_CODE_MAP[time];
+  if(depth && DEPTH_CODE_MAP[depth]) state.depth = DEPTH_CODE_MAP[depth];
+
+  save();
+  // Keep the URL clean so a refresh doesn't re-apply/override later in-app changes.
+  if(window.history && window.history.replaceState){
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+/* ---------- Streak logic: bump once per new calendar day active ---------- */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function touchStreak(){
+  const today = todayStr();
+  if(state.lastActiveDate === today) return;
+  if(state.lastActiveDate){
+    const prev = new Date(state.lastActiveDate);
+    const diffDays = Math.round((new Date(today) - prev) / 86400000);
+    state.streak = diffDays === 1 ? state.streak + 1 : 1;
+  }
+  state.lastActiveDate = today;
+  save();
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('visible'), 2200);
+}
+
+/* ============================================================
+   RENDER: TOPBAR + SIDEBAR
+   ============================================================ */
+function renderChrome(){
+  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  document.getElementById('sidebar-name').textContent = state.profile.role === 'Student' ? 'You' : 'Alex';
+  document.getElementById('sidebar-avatar').textContent = 'A';
+  document.getElementById('sidebar-streak').textContent = `Day ${state.streak} streak`;
+  document.getElementById('streak-count').textContent = state.streak;
+  document.getElementById('points-count').textContent = state.points;
+  document.getElementById('profile-email').textContent = state.profile.email;
+  document.getElementById('profile-authmethod').textContent = state.profile.authMethod;
+
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting-text').textContent = `${greet}.`;
+}
+
+/* ============================================================
+   NAV / VIEW SWITCHING
+   ============================================================ */
+function switchView(id, btn){
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  if(id === 'explore') renderExplore();
+  if(id === 'archive') renderArchive();
+  if(id === 'saved') renderSaved();
+  if(id === 'compounds') renderCompounds();
+  if(id === 'settings') renderSettings();
+}
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+/* ============================================================
+   TODAY'S BRIEF
+   ============================================================ */
+function getTodaysStories(){
+  const today = STORY_BANK.filter(s => s.date === '2026-09-17');
+  // personalize: prioritize interest matches, cap at 6
+  const scored = today.map(s => ({ s, score: state.interests.includes(s.category) ? 1 : 0 }));
+  scored.sort((a,b)=> b.score - a.score);
+  return scored.map(x=>x.s).slice(0,6);
+}
+
+function renderToday(){
+  const list = document.getElementById('today-story-list');
+  const stories = getTodaysStories();
+  const readCount = stories.filter(s => state.storiesRead[s.id]).length;
+  const totalMins = stories.reduce((a,s)=>a+s.readMins,0);
+
+  document.getElementById('brief-meta-text').textContent = `${stories.length} stories · about ${totalMins} min read`;
+  document.getElementById('brief-progress-fill').style.width = stories.length ? `${(readCount/stories.length)*100}%` : '0%';
+  document.getElementById('brief-progress-label').textContent = `${readCount} of ${stories.length} understood`;
+
+  list.innerHTML = stories.map(s => storyCardHTML(s)).join('');
+  document.getElementById('today-caught-up').style.display = (stories.length && readCount === stories.length) ? 'flex' : 'none';
+}
+
+function storyCardHTML(s){
+  const isRead = !!state.storiesRead[s.id];
+  const isSaved = !!state.storiesSaved[s.id];
+  const knownConcepts = s.concepts.filter(k => state.conceptsLearned[k]);
+  return `
+    <div class="story ${isRead?'read':''}" onclick="openStory('${s.id}')">
+      <div class="story-top-row">
+        <div class="story-tag-row">
+          <span class="story-tag">${s.category}</span>
+          <span class="story-readtime">${s.readMins} min</span>
+        </div>
+        ${isRead ? `<span class="story-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Understood</span>` : ''}
+      </div>
+      <div class="story-headline">${s.headline}</div>
+      <div class="story-dek">${s.dek}</div>
+      <div class="story-relevance">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
+        ${s.relevance}
+      </div>
+      <div class="story-concepts-row">
+        ${s.concepts.map(k => `<span class="concept-chip ${state.conceptsLearned[k]?'known':''}">${CONCEPT_LIBRARY[k].term}</span>`).join('')}
+      </div>
+      <div class="story-actions">
+        <span class="story-open-cta">${isRead ? 'Read again' : 'Understand this'} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <button class="icon-btn ${isSaved?'saved':''}" onclick="event.stopPropagation(); toggleSave('${s.id}')" title="Save">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="${isSaved?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+function toggleSave(id){
+  if(state.storiesSaved[id]) delete state.storiesSaved[id];
+  else state.storiesSaved[id] = true;
+  save();
+  renderToday(); renderExplore(); renderSaved();
+  showToast(state.storiesSaved[id] ? 'Saved' : 'Removed from saved');
+}
+
+/* ============================================================
+   STORY DEEP DIVE
+   ============================================================ */
+let currentStoryId = null;
+
+function findStory(id){ return STORY_BANK.find(s=>s.id===id); }
+
+function openStory(id){
+  currentStoryId = id;
+  const s = findStory(id);
+  const isSaved = !!state.storiesSaved[id];
+  const isRead = !!state.storiesRead[id];
+  const thread = state.askHistory[id] || [];
+
+  const connectionHTML = s.relatedConceptSeen && state.conceptsLearned[s.relatedConceptSeen]
+    ? `<div class="sd-connection">
+         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 17l6-6 4 4 8-8"/></svg>
+         <div><strong>You've seen this before.</strong><br>This story connects to ${CONCEPT_LIBRARY[s.relatedConceptSeen].term}, which you learned from an earlier brief.</div>
+       </div>`
+    : '';
+
+  document.getElementById('story-panel').innerHTML = `
+    <div class="sd-head">
+      <div class="sd-head-left">
+        <button class="icon-btn" onclick="toggleSave('${id}')" title="Save">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="${isSaved?'currentColor':'none'}" stroke="currentColor" stroke-width="2" style="color:${isSaved?'var(--primary)':'inherit'}"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+        </button>
+      </div>
+      <button class="sd-close" onclick="closeStory()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="sd-body">
+      <span class="sd-tag">${s.category}</span>
+      <div class="sd-headline">${s.headline}</div>
+      <div class="sd-meta">
+        <span>${s.readMins} min read</span>
+        <span>·</span>
+        <span>${new Date(s.date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+      </div>
+
+      ${connectionHTML}
+
+      <div class="sd-section">
+        <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>What happened</div>
+        <div class="sd-section-text">${s.whatHappened}</div>
+      </div>
+      <div class="sd-section">
+        <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Why it happened</div>
+        <div class="sd-section-text">${s.why}</div>
+      </div>
+      <div class="sd-section">
+        <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Why it matters</div>
+        <div class="sd-section-text">${s.matters}</div>
+      </div>
+      <div class="sd-section">
+        <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 010 7.75"/></svg>Who's affected</div>
+        <div class="sd-affected-grid">${s.affected.map(a=>`<span class="sd-affected-pill">${a}</span>`).join('')}</div>
+      </div>
+      <div class="sd-section">
+        <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>What happens next</div>
+        <div class="sd-section-text">${s.next}</div>
+      </div>
+      <div class="sd-section">
+        <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>Key concepts</div>
+        <div class="sd-concepts-list">
+          ${s.concepts.map(k=>`<div class="sd-concept-item"><span class="sd-concept-term">${CONCEPT_LIBRARY[k].term}</span><span class="sd-concept-def">— ${CONCEPT_LIBRARY[k].def}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="sd-section">
+        <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Sources</div>
+        <div class="sd-sources">${s.sources.map(src=>`<span class="sd-source-pill">${src}</span>`).join('')}</div>
+      </div>
+
+      <div class="ask-box">
+        <div class="ask-box-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
+          Ask simplify about this story
+        </div>
+        <div class="ask-suggestions">
+          ${SUGGESTED_QUESTIONS.map(q=>`<span class="ask-chip" onclick="submitAsk('${id}', ${JSON.stringify(q)})">${q}</span>`).join('')}
+        </div>
+        <div class="ask-thread" id="ask-thread">${threadHTML(thread)}</div>
+        <div class="ask-input-row" style="margin-top:12px;">
+          <input class="ask-input" id="ask-input" type="text" placeholder="Ask anything about this story…" onkeydown="if(event.key==='Enter'){submitAsk('${id}', this.value); this.value='';}">
+          <button class="ask-send" onclick="const i=document.getElementById('ask-input'); submitAsk('${id}', i.value); i.value='';">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="sd-footer">
+        <button class="mark-done-btn ${isRead?'done':''}" id="mark-done-btn" onclick="toggleUnderstood('${id}')">
+          ${isRead
+            ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Understood`
+            : `Mark as understood`}
+        </button>
+        <div class="sd-footer-actions">
+          <button class="icon-btn" onclick="closeStory()">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('story-overlay').classList.add('active');
+
+  // Opening & reading a story is itself a small comprehension signal.
+  markOpened(id);
+}
+
+function threadHTML(thread){
+  return thread.map(t => `
+    <div class="ask-qa">
+      <div class="ask-q">${escapeHTML(t.q)}</div>
+      <div class="ask-a">${escapeHTML(t.a)}</div>
+    </div>`).join('');
+}
+function escapeHTML(str){
+  const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
+}
+
+function submitAsk(storyId, question){
+  question = (question||'').trim();
+  if(!question) return;
+  const s = findStory(storyId);
+  if(!state.askHistory[storyId]) state.askHistory[storyId] = [];
+  const thread = document.getElementById('ask-thread');
+  thread.innerHTML += `<div class="ask-qa"><div class="ask-q">${escapeHTML(question)}</div><div class="ask-a thinking" id="thinking-${Date.now()}">Thinking…</div></div>`;
+  const thinkingEls = thread.querySelectorAll('.thinking');
+  const thinkingEl = thinkingEls[thinkingEls.length-1];
+  thread.scrollTop = thread.scrollHeight;
+
+  setTimeout(()=>{
+    const answer = askAI(s, question);
+    thinkingEl.textContent = answer;
+    thinkingEl.classList.remove('thinking');
+    state.askHistory[storyId].push({ q: question, a: answer });
+    state.points += 2; // asking questions is rewarded — curiosity, not just consumption
+    save();
+    renderChrome();
+  }, 650);
+}
+
+function markOpened(id){
+  touchStreak();
+  if(!state.storiesRead[id]){
+    // opening doesn't count as "understood" — only explicit mark-as-understood does.
+  }
+  save();
+}
+
+function toggleUnderstood(id){
+  const s = findStory(id);
+  const wasRead = !!state.storiesRead[id];
+  if(wasRead){
+    delete state.storiesRead[id];
+    state.points = Math.max(0, state.points - 10);
+  } else {
+    state.storiesRead[id] = { readAt: new Date().toISOString() };
+    state.points += 10;
+    s.concepts.forEach(k=>{
+      if(!state.conceptsLearned[k]){
+        state.conceptsLearned[k] = { firstSeenStoryId: id, firstSeenDate: s.date };
+        state.points += 3;
+      }
+    });
+    showToast('Marked as understood · +10 pts');
+  }
+  save();
+  renderChrome();
+  renderToday();
+  openStory(id); // refresh panel state (button + connection banner)
+}
+
+function closeStory(){
+  document.getElementById('story-overlay').classList.remove('active');
+  currentStoryId = null;
+  renderToday(); renderExplore(); renderSaved(); renderCompounds();
+}
+
+/* ============================================================
+   EXPLORE
+   ============================================================ */
+let activeExploreFilter = 'All';
+
+function renderExploreFilters(){
+  const wrap = document.getElementById('explore-filters');
+  const filters = ['All', ...CATEGORIES];
+  wrap.innerHTML = filters.map(f => `<button class="filter-pill ${f===activeExploreFilter?'active':''}" onclick="setExploreFilter('${f}')">${f}</button>`).join('');
+}
+function setExploreFilter(f){ activeExploreFilter = f; renderExplore(); }
+
+function renderExplore(){
+  renderExploreFilters();
+  const q = (document.getElementById('explore-search-input')?.value || '').toLowerCase().trim();
+  let results = STORY_BANK.slice().sort((a,b)=> b.date.localeCompare(a.date));
+  if(activeExploreFilter !== 'All') results = results.filter(s=>s.category===activeExploreFilter);
+  if(q){
+    results = results.filter(s =>
+      s.headline.toLowerCase().includes(q) ||
+      s.dek.toLowerCase().includes(q) ||
+      s.concepts.some(k => CONCEPT_LIBRARY[k].term.toLowerCase().includes(q))
+    );
+    if(q.length > 2 && !state.searches.includes(q)){
+      state.searches.unshift(q);
+      state.searches = state.searches.slice(0,20);
+      save();
+    }
+  }
+  const out = document.getElementById('explore-results');
+  if(!results.length){
+    out.innerHTML = `<div class="no-results">No stories match "${escapeHTML(q)}" yet. Try a different term.</div>`;
+    return;
+  }
+  out.innerHTML = `<div class="explore-list">${results.map(storyCardHTML).join('')}</div>`;
+}
+
+function globalSearch(q){
+  q = q.trim();
+  if(!q) return;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelector('.nav-item[data-view="explore"]').classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-explore').classList.add('active');
+  document.getElementById('explore-search-input').value = q;
+  activeExploreFilter = 'All';
+  renderExplore();
+}
+
+/* ============================================================
+   ARCHIVE
+   ============================================================ */
+function renderArchive(){
+  const byDate = {};
+  STORY_BANK.forEach(s=>{ (byDate[s.date] = byDate[s.date]||[]).push(s); });
+  const dates = Object.keys(byDate).sort((a,b)=> b.localeCompare(a));
+  document.getElementById('archive-list').innerHTML = dates.map(d=>{
+    const stories = byDate[d];
+    const readN = stories.filter(s=>state.storiesRead[s.id]).length;
+    const label = new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `
+      <div class="archive-item" onclick="openArchiveDay('${d}')">
+        <div class="archive-date">${label}</div>
+        <div class="archive-summary">${stories.map(s=>s.headline).join(' · ')}</div>
+        <div class="archive-count">${readN}/${stories.length} read</div>
+      </div>`;
+  }).join('');
+}
+function openArchiveDay(date){
+  const first = STORY_BANK.find(s=>s.date===date);
+  if(first) openStory(first.id);
+}
+
+/* ============================================================
+   SAVED & HISTORY
+   ============================================================ */
+let savedTab = 'saved';
+function switchSavedTab(tab, btn){
+  savedTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSaved();
+}
+function renderSaved(){
+  const wrap = document.getElementById('saved-history-content');
+  if(savedTab === 'saved'){
+    const ids = Object.keys(state.storiesSaved);
+    if(!ids.length){
+      wrap.innerHTML = emptyStateHTML('No saved stories yet', 'Tap the bookmark icon on any story to keep it here.');
+      return;
+    }
+    wrap.innerHTML = ids.map(id=>storyCardHTML(findStory(id))).filter(Boolean).join('');
+  } else {
+    const ids = Object.keys(state.storiesRead).sort((a,b)=> new Date(state.storiesRead[b].readAt) - new Date(state.storiesRead[a].readAt));
+    if(!ids.length){
+      wrap.innerHTML = emptyStateHTML('No reading history yet', 'Stories you mark as understood will show up here.');
+      return;
+    }
+    wrap.innerHTML = ids.map(id=>storyCardHTML(findStory(id))).filter(Boolean).join('');
+  }
+}
+function emptyStateHTML(title, sub){
+  return `<div class="empty-state">
+    <div class="e-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></div>
+    <div class="e-title">${title}</div>
+    <div class="e-sub">${sub}</div>
+  </div>`;
+}
+
+/* ============================================================
+   KNOWLEDGE COMPOUNDS
+   ============================================================ */
+function renderCompounds(){
+  const briefsRead = Object.keys(state.storiesRead).length;
+  const conceptsN = Object.keys(state.conceptsLearned).length;
+  const minsInvested = Object.keys(state.storiesRead).reduce((sum,id)=>{
+    const s = findStory(id); return sum + (s ? s.readMins : 0);
+  }, 0);
+
+  document.getElementById('compound-streak-num').textContent = state.streak;
+  document.getElementById('stat-briefs').textContent = briefsRead;
+  document.getElementById('stat-concepts').textContent = conceptsN;
+  document.getElementById('stat-time').textContent = `${minsInvested} min`;
+  document.getElementById('stat-points').textContent = state.points;
+
+  // heatmap: deterministic pseudo-history + real recent activity
+  const grid = document.getElementById('heatmap');
+  grid.innerHTML = '';
+  const weeks = 26*7;
+  for(let i=0;i<weeks;i++){
+    const cell = document.createElement('div');
+    let cls = 'cell';
+    const isRecent = i > weeks - 8;
+    const r = isRecent ? (i === weeks-1 ? 1 : Math.random()) : Math.random()*0.9;
+    if(r > 0.85) cls += ' l3'; else if(r > 0.65) cls += ' l2'; else if(r > 0.4) cls += ' l1';
+    cell.className = cls;
+    grid.appendChild(cell);
+  }
+
+  const conceptKeys = Object.keys(state.conceptsLearned);
+  const sub = document.getElementById('concept-map-sub');
+  const conceptGrid = document.getElementById('concept-grid');
+  if(!conceptKeys.length){
+    sub.textContent = "You haven't learned any concepts yet — mark a story as understood to start building this out.";
+    conceptGrid.innerHTML = '';
+    return;
+  }
+  sub.textContent = 'Tap a concept to revisit the story that taught it to you.';
+  conceptGrid.innerHTML = conceptKeys.map(k=>{
+    const c = CONCEPT_LIBRARY[k];
+    const info = state.conceptsLearned[k];
+    const learnedDate = new Date(info.firstSeenDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return `
+      <div class="concept-card" onclick="openStory('${info.firstSeenStoryId}')" style="cursor:pointer;">
+        <div class="term">${c.term}</div>
+        <div class="def">${c.def}</div>
+        <div class="meta"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Learned ${learnedDate}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   PROFILE / SETTINGS
+   ============================================================ */
+function renderSettings(){
+  const roles = ['Student','Working Professional','Founder/Investor','Other'];
+  document.getElementById('profile-role-toggle').innerHTML = roles.map(r=>
+    `<span class="pill ${state.profile.role===r?'active':''}" onclick="setRole('${r}')">${r}</span>`).join('');
+
+  const times = ['10 min','15 min','15+ min'];
+  document.getElementById('reading-time-toggle').innerHTML = times.map(t=>
+    `<button class="${state.readingTime===t?'active':''}" onclick="setReadingTime('${t}')">${t}</button>`).join('');
+
+  const depths = ['New to this','Some knowledge','Advanced'];
+  document.getElementById('depth-toggle').innerHTML = depths.map(d=>
+    `<button class="${state.depth===d?'active':''}" onclick="setDepth('${d}')">${d}</button>`).join('');
+
+  document.getElementById('interests-toggle').innerHTML = CATEGORIES.map(c=>
+    `<span class="pill ${state.interests.includes(c)?'active':''}" onclick="toggleInterest('${c}')">${c}</span>`).join('');
+
+  const times2 = ['7:00 AM','8:00 AM','9:00 AM'];
+  document.getElementById('delivery-toggle').innerHTML = times2.map(t=>
+    `<button class="${state.deliveryTime===t?'active':''}" onclick="setDelivery('${t}')">${t}</button>`).join('');
+}
+function setRole(r){ state.profile.role = r; save(); renderSettings(); renderChrome(); showToast('Preference saved'); }
+function setReadingTime(t){ state.readingTime = t; save(); renderSettings(); renderToday(); showToast('Preference saved'); }
+function setDepth(d){ state.depth = d; save(); renderSettings(); showToast('Preference saved — explanations will adjust'); }
+function toggleInterest(c){
+  if(state.interests.includes(c)) state.interests = state.interests.filter(i=>i!==c);
+  else state.interests.push(c);
+  save(); renderSettings(); renderToday(); showToast('Interests updated');
+}
+function setDelivery(t){ state.deliveryTime = t; save(); renderSettings(); showToast('Preference saved'); }
+
+function resetAllData(){
+  if(!confirm('This clears your streak, saved stories, concepts and preferences from this browser. Continue?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = defaultState();
+  save();
+  initApp();
+  showToast('Your Simplify data has been reset');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function initApp(){
+  applyOnboardingHandoff();
+  touchStreak();
+  renderChrome();
+  renderToday();
+  renderExplore();
+  renderArchive();
+  renderSaved();
+  renderCompounds();
+  renderSettings();
+}
+initApp();
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && document.getElementById('story-overlay').classList.contains('active')) closeStory();
+});
+</script>
+</body>
+</html>
