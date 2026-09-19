@@ -38,6 +38,7 @@
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);}
 
   #shell{display:flex; height:100vh; width:100vw;}
+  #sidebar-backdrop{ display:none; }
 
   /* ---------------- SIDEBAR ---------------- */
   #sidebar{
@@ -88,8 +89,12 @@
   #main{ flex:1; display:flex; flex-direction:column; min-width:0; }
   #topbar{
     height:64px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between;
-    padding:0 28px; border-bottom:1px solid var(--border);
+    padding:0 28px; border-bottom:1px solid var(--border); gap:12px;
   }
+  .topbar-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+  #mobile-menu-btn{ display:none; width:34px; height:34px; align-items:center; justify-content:center; border-radius:8px; color:var(--ink); flex-shrink:0; }
+  #mobile-menu-btn:hover{ background:var(--sidebar); }
+  #mobile-search-btn{ display:none; width:32px; height:32px; align-items:center; justify-content:center; border-radius:8px; color:var(--muted); flex-shrink:0; }
   .topbar-date{ font-size:13.5px; color:var(--muted); font-weight:500; }
   .topbar-right{ display:flex; align-items:center; gap:14px; }
   .search-pill{
@@ -309,14 +314,60 @@
   .toast.visible{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   @media (max-width:860px){
-    #sidebar{ position:fixed; z-index:20; height:100vh; }
-    #sidebar:not(.collapsed){ box-shadow:0 0 40px rgba(0,0,0,0.15); }
+    /* Sidebar becomes an off-canvas drawer instead of a persistent column */
+    #sidebar{
+      position:fixed; z-index:40; height:100vh; top:0; left:0;
+      width:264px; padding:20px 16px;
+      transform:translateX(-100%); transition:transform .25s ease;
+      box-shadow:0 0 40px rgba(0,0,0,0.18);
+    }
+    #sidebar.mobile-open{ transform:translateX(0); }
+    #sidebar.collapsed{ width:264px; padding:20px 16px; } /* ignore desktop-collapse state on mobile */
+    #sidebar.collapsed .brand,
+    #sidebar.collapsed .nav-label,
+    #sidebar.collapsed .sidebar-user{ opacity:1; width:auto; }
+    .collapse-btn{ display:none; } /* collapse-to-icons doesn't apply as a drawer */
+
+    #sidebar-backdrop{
+      display:none; position:fixed; inset:0; background:rgba(10,10,10,0.35); z-index:30;
+    }
+    #sidebar-backdrop.visible{ display:block; }
+
+    #mobile-menu-btn{ display:flex; }
+    #mobile-search-btn{ display:flex; }
+    #topbar{ padding:0 14px; height:56px; }
+    .topbar-date{ font-size:12.5px; }
+    .topbar-right{ gap:8px; }
+    .search-pill{ display:none; } /* replaced by the icon button above on mobile */
+    .points-chip .chip-label,
+    .streak-chip .chip-label{ display:none; } /* icon + number only, full label hidden */
+    .points-chip, .streak-chip{ padding:6px 9px; }
+
+    .view{ padding:24px 16px 60px; }
+    .reading-col, .wide-col{ max-width:100%; }
+
+    .story{ padding:18px 18px; }
+    .sd-body{ padding:8px 18px 30px; }
+
+    /* Story deep-dive becomes a full-screen sheet, not a centered card */
+    #story-overlay{ padding:0; align-items:stretch; }
+    #story-panel{ max-width:100%; max-height:100vh; border-radius:0; width:100%; }
+
+    .compound-stats-row{ gap:18px; }
+    .settings-row{ flex-wrap:wrap; }
+    .segmented{ width:100%; justify-content:space-between; }
+  }
+
+  @media (max-width:420px){
+    .brief-title{ font-size:26px; }
+    .sd-headline{ font-size:21px; }
   }
 </style>
 </head>
 <body>
 
 <div id="shell">
+  <div id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
   <!-- SIDEBAR -->
   <aside id="sidebar">
     <div class="brand">simplify</div>
@@ -363,7 +414,12 @@
   <!-- MAIN -->
   <div id="main">
     <div id="topbar">
-      <div class="topbar-date" id="topbar-date">—</div>
+      <div class="topbar-left">
+        <button id="mobile-menu-btn" onclick="openMobileSidebar()" aria-label="Open menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div class="topbar-date" id="topbar-date">—</div>
+      </div>
       <div class="topbar-right">
         <div class="search-pill" onclick="document.getElementById('global-search-input').focus()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -371,11 +427,14 @@
         </div>
         <div class="points-chip" id="points-chip">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
-          <span id="points-count">0</span> pts
+          <span id="points-count">0</span><span class="chip-label"> pts</span>
         </div>
+        <button id="mobile-search-btn" onclick="goToMobileSearch()" aria-label="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
         <div class="streak-chip" id="streak-chip">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1 4-1 6 0 1.5 1 2 2 2 1.5 0 2-1.5 1.5-3 2 1 4 4 4 7a6.5 6.5 0 01-13 0c0-4 2-7 6.5-12z"/></svg>
-          <span id="streak-count">1</span> day streak
+          <span id="streak-count">1</span><span class="chip-label"> day streak</span>
         </div>
       </div>
     </div>
@@ -577,6 +636,13 @@
 
 const CATEGORIES = ['Markets','Economy','Business','Policy','Global','Finance'];
 
+// Interest vocabulary — must match the onboarding artifact's INTERESTS
+// list exactly (Markets/Policy/Technology/Startups/Economy/AI), since
+// that's what actually gets picked and passed through the handoff.
+// CATEGORIES above is a separate, broader taxonomy used only for the
+// Explore browse-by-category filter — not for personalization scoring.
+const INTEREST_OPTIONS = ['Markets','Policy','Technology','Startups','Economy','AI'];
+
 const CONCEPT_LIBRARY = {
   'repo-rate': { term:'Repo rate', def:'The interest rate at which the central bank lends short-term money to commercial banks. Cutting it makes borrowing cheaper economy-wide.' },
   'bond-yields': { term:'Bond yields', def:'The return an investor earns on a bond. Yields fall when bond prices rise — often when rates are cut or expected to fall.' },
@@ -595,12 +661,15 @@ const CONCEPT_LIBRARY = {
   'fii-flows': { term:'FII flows', def:'Money moving in or out of a country\'s markets from Foreign Institutional Investors — a signal of global investor sentiment.' },
 };
 
-// Each story: id, date(YYYY-MM-DD), category, headline, dek, readMins,
-// relevance(why it was picked for this user), sections{whatHappened, why, matters, next},
-// affected[], concepts[](keys into CONCEPT_LIBRARY), sources[], relatedConceptSeen(optional key)
+// Each story: id, date(YYYY-MM-DD), category (display taxonomy),
+// tags[] (interest-matching — from INTEREST_OPTIONS, can be several),
+// relevance(fallback text when no interest overlap), sections{whatHappened,
+// why, matters, next}, affected[], concepts[](keys into CONCEPT_LIBRARY),
+// sources[], relatedConceptSeen(optional key)
 const STORY_BANK = [
   {
     id:'rbi-repo-cut', date:'2026-09-17', category:'Policy',
+    tags:['Policy','Markets','Economy'],
     headline:"RBI cuts repo rate by 25 basis points",
     dek:"India's central bank lowered its key lending rate for the second time this year, citing cooling inflation.",
     readMins:3,
@@ -615,6 +684,7 @@ const STORY_BANK = [
   },
   {
     id:'bank-stocks-rally', date:'2026-09-17', category:'Markets',
+    tags:['Markets','Economy'],
     headline:"Bank stocks rally on rate-cut expectations",
     dek:"Nifty Bank rose 2.1% as investors priced in wider lending margins ahead of the RBI decision.",
     readMins:2,
@@ -630,6 +700,7 @@ const STORY_BANK = [
   },
   {
     id:'apple-india-manufacturing', date:'2026-09-17', category:'Business',
+    tags:['Technology','Startups','Markets'],
     headline:"Apple expands manufacturing investment in India",
     dek:"The company will nearly double iPhone assembly capacity at its Tamil Nadu facilities by 2027.",
     readMins:3,
@@ -644,6 +715,7 @@ const STORY_BANK = [
   },
   {
     id:'startup-ipo-wave', date:'2026-09-17', category:'Finance',
+    tags:['Startups','Markets'],
     headline:"Three consumer-tech startups file for IPOs this week",
     dek:"A food-delivery, a fintech and a D2C beauty brand all filed draft prospectuses within days of each other.",
     readMins:3,
@@ -658,6 +730,7 @@ const STORY_BANK = [
   },
   {
     id:'rupee-cad', date:'2026-09-16', category:'Economy',
+    tags:['Economy','Policy','Markets'],
     headline:"Rupee slips as current account deficit widens",
     dek:"India's currency touched a two-month low after trade data showed a bigger gap between imports and exports.",
     readMins:2,
@@ -672,6 +745,7 @@ const STORY_BANK = [
   },
   {
     id:'semiconductor-export-curbs', date:'2026-09-15', category:'Global',
+    tags:['Technology','AI','Policy'],
     headline:"US tightens chip export rules for a second time this year",
     dek:"New restrictions target advanced AI chips bound for a wider list of countries, reshaping global supply chains.",
     readMins:4,
@@ -686,6 +760,7 @@ const STORY_BANK = [
   },
   {
     id:'bank-merger-depositors', date:'2026-09-14', category:'Finance',
+    tags:['Markets','Policy'],
     headline:"Mid-sized private bank merger gets regulatory approval",
     dek:"The RBI cleared a long-pending merger between two private lenders, creating the country's sixth-largest private bank by assets.",
     readMins:3,
@@ -700,6 +775,7 @@ const STORY_BANK = [
   },
   {
     id:'inflation-print', date:'2026-09-13', category:'Economy',
+    tags:['Economy','Policy'],
     headline:"Retail inflation eases to 18-month low",
     dek:"Falling vegetable and fuel prices pulled headline inflation down to 3.4% year-on-year in August.",
     readMins:2,
@@ -716,10 +792,29 @@ const STORY_BANK = [
 ];
 
 /* ============================================================
-   MOCK AI LAYER — contextual, template-based "Ask Simplify".
-   Swap askAI() for a real LLM call later; signature stays the same.
+   AI LAYER — tries the real /api/ask serverless function first
+   (real Claude, grounded in this story's fields); if that route
+   isn't configured yet (no ANTHROPIC_API_KEY) or fails for any
+   reason, falls back to the local template answers below so the
+   feature never breaks — before a key is set, mid-outage, or offline.
    ============================================================ */
-function askAI(story, question){
+async function askAI(story, question){
+  try{
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ story, question }),
+    });
+    if(!res.ok) throw new Error('ask endpoint unavailable');
+    const data = await res.json();
+    if(!data.text) throw new Error('empty response');
+    return data.text;
+  }catch(err){
+    return askAIFallback(story, question);
+  }
+}
+
+function askAIFallback(story, question){
   const q = question.toLowerCase();
   const term = (key) => CONCEPT_LIBRARY[key] ? CONCEPT_LIBRARY[key].term.toLowerCase() : '';
 
@@ -774,7 +869,7 @@ const STORAGE_KEY = 'simplify_state_v1';
 function defaultState(){
   return {
     profile: { role:'Working Professional', email:'alex@email.com', authMethod:'Simulated session' },
-    interests: ['Markets','Policy','Business','Finance'],
+    interests: ['Markets','Policy','Economy'],
     readingTime: '10 min',
     depth: 'Some knowledge',
     deliveryTime: '7:00 AM',
@@ -895,16 +990,41 @@ function switchView(id, btn){
   if(id === 'saved') renderSaved();
   if(id === 'compounds') renderCompounds();
   if(id === 'settings') renderSettings();
+  closeMobileSidebar(); // picking a destination should close the drawer, same as any mobile nav
+  document.getElementById('view-container').scrollTop = 0;
 }
 function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+function openMobileSidebar(){
+  document.getElementById('sidebar').classList.add('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.add('visible');
+}
+function closeMobileSidebar(){
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.remove('visible');
+}
+function goToMobileSearch(){
+  document.querySelector('.nav-item[data-view="explore"]').click();
+  setTimeout(()=>{
+    const el = document.getElementById('explore-search-input');
+    if(el) el.focus();
+  }, 250);
+}
 
 /* ============================================================
    TODAY'S BRIEF
    ============================================================ */
+function matchedInterests(story){
+  return (story.tags||[]).filter(t => state.interests.includes(t));
+}
+
 function getTodaysStories(){
-  const today = STORY_BANK.filter(s => s.date === '2026-09-17');
-  // personalize: prioritize interest matches, cap at 6
-  const scored = today.map(s => ({ s, score: state.interests.includes(s.category) ? 1 : 0 }));
+  // Pool from the whole (small, mock) story set rather than one literal
+  // date — with only 8 sample stories across ~5 days, restricting to a
+  // single date starved personalization of anything to actually rank.
+  // Sort is stable, so ties fall back to most-recent-first.
+  const pool = STORY_BANK.slice().sort((a,b)=> b.date.localeCompare(a.date));
+  const scored = pool.map(s => ({ s, score: matchedInterests(s).length }));
   scored.sort((a,b)=> b.score - a.score);
   return scored.map(x=>x.s).slice(0,6);
 }
@@ -927,6 +1047,10 @@ function storyCardHTML(s){
   const isRead = !!state.storiesRead[s.id];
   const isSaved = !!state.storiesSaved[s.id];
   const knownConcepts = s.concepts.filter(k => state.conceptsLearned[k]);
+  const matched = matchedInterests(s);
+  const relevanceText = matched.length
+    ? `Matches your interest in ${matched.join(' & ')}`
+    : (s.relevance || "In today's top stories");
   return `
     <div class="story ${isRead?'read':''}" onclick="openStory('${s.id}')">
       <div class="story-top-row">
@@ -940,7 +1064,7 @@ function storyCardHTML(s){
       <div class="story-dek">${s.dek}</div>
       <div class="story-relevance">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
-        ${s.relevance}
+        ${relevanceText}
       </div>
       <div class="story-concepts-row">
         ${s.concepts.map(k => `<span class="concept-chip ${state.conceptsLearned[k]?'known':''}">${CONCEPT_LIBRARY[k].term}</span>`).join('')}
@@ -1082,7 +1206,7 @@ function escapeHTML(str){
   const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
 }
 
-function submitAsk(storyId, question){
+async function submitAsk(storyId, question){
   question = (question||'').trim();
   if(!question) return;
   const s = findStory(storyId);
@@ -1093,15 +1217,13 @@ function submitAsk(storyId, question){
   const thinkingEl = thinkingEls[thinkingEls.length-1];
   thread.scrollTop = thread.scrollHeight;
 
-  setTimeout(()=>{
-    const answer = askAI(s, question);
-    thinkingEl.textContent = answer;
-    thinkingEl.classList.remove('thinking');
-    state.askHistory[storyId].push({ q: question, a: answer });
-    state.points += 2; // asking questions is rewarded — curiosity, not just consumption
-    save();
-    renderChrome();
-  }, 650);
+  const answer = await askAI(s, question);
+  thinkingEl.textContent = answer;
+  thinkingEl.classList.remove('thinking');
+  state.askHistory[storyId].push({ q: question, a: answer });
+  state.points += 2; // asking questions is rewarded — curiosity, not just consumption
+  save();
+  renderChrome();
 }
 
 function markOpened(id){
@@ -1318,7 +1440,7 @@ function renderSettings(){
   document.getElementById('depth-toggle').innerHTML = depths.map(d=>
     `<button class="${state.depth===d?'active':''}" onclick="setDepth('${d}')">${d}</button>`).join('');
 
-  document.getElementById('interests-toggle').innerHTML = CATEGORIES.map(c=>
+  document.getElementById('interests-toggle').innerHTML = INTEREST_OPTIONS.map(c=>
     `<span class="pill ${state.interests.includes(c)?'active':''}" onclick="toggleInterest('${c}')">${c}</span>`).join('');
 
   const times2 = ['7:00 AM','8:00 AM','9:00 AM'];
@@ -1362,6 +1484,7 @@ initApp();
 
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape' && document.getElementById('story-overlay').classList.contains('active')) closeStory();
+  if(e.key === 'Escape' && document.getElementById('sidebar').classList.contains('mobile-open')) closeMobileSidebar();
 });
 </script>
 </body>
