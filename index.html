@@ -2119,9 +2119,10 @@ function initApp(){
 (function boot(){
   renderOnboardingOptions();
   if(state.onboarded){
-    document.getElementById("onboarding").style.display = "none";
-    document.getElementById("app").classList.add("active");
-    initApp();
+    // Already completed onboarding on this browser before — send straight
+    // to the real product (same destination finishOnboarding() uses),
+    // instead of revealing this page's own leftover internal app view.
+    window.location.href = "app.html";
   }
 })();
 </script>
