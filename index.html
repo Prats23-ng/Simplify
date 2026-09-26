@@ -595,6 +595,16 @@
   .ob-btn:disabled{ opacity:.3; cursor:not-allowed; }
   .ob-btn:not(:disabled):active{ transform:scale(.98); }
   .ob-back{ display:block; margin:14px auto 0; font-size:12.5px; color:var(--muted); font-weight:600; }
+  .ob-ready-check{
+    width:44px; height:44px; border-radius:50%; background:rgba(22,163,74,0.1); color:var(--good);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 18px;
+  }
+  .ob-ready-recap{ display:flex; flex-wrap:wrap; justify-content:center; gap:7px; margin-bottom:26px; }
+  .ob-ready-recap .pill{
+    font-size:12px; font-weight:700; color:var(--primary); background:var(--primary-soft);
+    padding:6px 12px; border-radius:999px; border:1px solid rgba(79,70,229,0.18);
+  }
+  .ob-ready-hint{ margin-top:14px; font-size:12px; color:var(--muted); }
   .ob-loading{ text-align:center; }
   .ob-check-list{ display:flex; flex-direction:column; gap:10px; margin:26px 0; text-align:left; max-width:280px; margin-left:auto; margin-right:auto; }
   .ob-check-item{ display:flex; align-items:center; gap:10px; font-size:13.5px; font-weight:600; color:var(--border); opacity:.35; transition:all .35s ease; }
@@ -1066,9 +1076,14 @@
 
     <!-- STEP 5: hand off to the product -->
     <div class="ob-step" id="ob-step-5" style="display:none; text-align:center;">
+      <div class="ob-ready-check" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
       <div class="ob-title" style="font-size:22px;">Your first brief is ready.</div>
-      <div class="ob-sub" style="margin-bottom:28px;">simplify opens in a new tab, personalized to what you just told us.</div>
+      <div class="ob-sub" style="margin-bottom:6px;">Personalized to what you just told us.</div>
+      <div class="ob-ready-recap" id="ob-ready-recap"></div>
       <a class="ob-btn" id="ob-open-product" href="#" style="text-decoration:none; margin-bottom:10px;">Open my Daily Brief →</a>
+      <div class="ob-ready-hint">You can change any of this later from Settings.</div>
     </div>
 
   </div>
@@ -1740,6 +1755,13 @@ function startBriefBuild(){
 // URL params below are kept as a harmless fallback for the first load.
 const SIMPLIFY_PRODUCT_URL = "app.html";
 
+// BETA SWITCH: while this is true, every visit shows onboarding from
+// scratch, even on a browser that's completed it before — useful while
+// you want every tester to see the full flow. Flip to false once beta
+// testing is done to restore normal "skip onboarding if already done"
+// behavior for returning visitors.
+const BETA_ALWAYS_SHOW_ONBOARDING = true;
+
 function finishOnboarding(){
   state.profile.role = obSelections.role;
   state.profile.interests = obSelections.interests;
@@ -1758,6 +1780,16 @@ function finishOnboarding(){
     depth: obSelections.depth || ""
   });
   document.getElementById("ob-open-product").href = `${SIMPLIFY_PRODUCT_URL}?${params.toString()}`;
+
+  // Recap pills confirming what was actually captured — reassurance that
+  // personalization took, not just a bare "continue" screen.
+  const roleLabel = (ROLES.find(r => r.v === obSelections.role) || {}).label;
+  const timeLabel = (TIMES.find(t => t.v === obSelections.time) || {}).label;
+  const recapPills = [roleLabel, ...(obSelections.interests || []), timeLabel]
+    .filter(Boolean)
+    .map(text => `<span class="pill">${text}</span>`)
+    .join('');
+  document.getElementById("ob-ready-recap").innerHTML = recapPills;
 
   obGoTo(5);
 }
@@ -2118,7 +2150,7 @@ function initApp(){
 }
 (function boot(){
   renderOnboardingOptions();
-  if(state.onboarded){
+  if(state.onboarded && !BETA_ALWAYS_SHOW_ONBOARDING){
     // Already completed onboarding on this browser before — send straight
     // to the real product (same destination finishOnboarding() uses),
     // instead of revealing this page's own leftover internal app view.
