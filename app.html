@@ -403,9 +403,9 @@
       <span class="nav-label">Collapse</span>
     </button>
     <div class="sidebar-foot">
-      <div class="avatar" id="sidebar-avatar">A</div>
+      <div class="avatar" id="sidebar-avatar">G</div>
       <div class="sidebar-user">
-        <div class="name" id="sidebar-name">Alex</div>
+        <div class="name" id="sidebar-name">Guest</div>
         <div class="streak" id="sidebar-streak">Day 1 streak</div>
       </div>
     </div>
@@ -868,7 +868,8 @@ const STORAGE_KEY = 'simplify_state_v1';
 
 function defaultState(){
   return {
-    profile: { role:'Working Professional', email:'alex@email.com', authMethod:'Simulated session' },
+    profile: { role:'Working Professional', email:'Guest', authMethod:'Guest mode' },
+    onboarded: false,
     interests: ['Markets','Policy','Economy'],
     readingTime: '10 min',
     depth: 'Some knowledge',
@@ -899,7 +900,7 @@ function load(){
   }
 }
 function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
 }
 
 /* ---------- Onboarding handoff ----------
@@ -909,8 +910,8 @@ function save(){
    this reads them once on load, maps them into this app's state shape, and
    persists them — so a fresh arrival from onboarding is personalized even
    with no prior localStorage here. */
-const TIME_CODE_MAP = { '5':'10 min', '10':'10 min', '15':'15+ min' };
-const DEPTH_CODE_MAP = { 'quick':'New to this', 'full':'Advanced' };
+const TIME_CODE_MAP = { '5':'10 min', '10':'10 min', '15':'15+ min', '10 min':'10 min', '15 min':'15 min', '15+ min':'15+ min' };
+const DEPTH_CODE_MAP = { 'quick':'New to this', 'full':'Advanced', 'New to this':'New to this', 'Some knowledge':'Some knowledge', 'Advanced':'Advanced' };
 
 function applyOnboardingHandoff(){
   const params = new URLSearchParams(window.location.search);
@@ -926,6 +927,7 @@ function applyOnboardingHandoff(){
   if(time && TIME_CODE_MAP[time]) state.readingTime = TIME_CODE_MAP[time];
   if(depth && DEPTH_CODE_MAP[depth]) state.depth = DEPTH_CODE_MAP[depth];
 
+  state.onboarded = true;
   save();
   // Keep the URL clean so a refresh doesn't re-apply/override later in-app changes.
   if(window.history && window.history.replaceState){
@@ -964,8 +966,9 @@ function showToast(msg){
    ============================================================ */
 function renderChrome(){
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-  document.getElementById('sidebar-name').textContent = state.profile.role === 'Student' ? 'You' : 'Alex';
-  document.getElementById('sidebar-avatar').textContent = 'A';
+  const nm = (state.profile.email && state.profile.email !== 'Guest') ? state.profile.email.split('@')[0] : 'Guest';
+  document.getElementById('sidebar-name').textContent = nm;
+  document.getElementById('sidebar-avatar').textContent = nm.charAt(0).toUpperCase();
   document.getElementById('sidebar-streak').textContent = `Day ${state.streak} streak`;
   document.getElementById('streak-count').textContent = state.streak;
   document.getElementById('points-count').textContent = state.points;
@@ -1157,7 +1160,7 @@ function openStory(id){
       </div>
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Sources</div>
-        <div class="sd-sources">${s.sources.map(src=>`<span class="sd-source-pill">${src}</span>`).join('')}</div>
+        <div class="sd-sources"><span class="sd-source-pill">Sample story · illustrative</span><span class="sd-source-pill">Real sources appear once a live news feed is connected</span></div>
       </div>
 
       <div class="ask-box">
@@ -1471,6 +1474,8 @@ function resetAllData(){
    ============================================================ */
 function initApp(){
   applyOnboardingHandoff();
+  // New visitors always start at the landing -> onboarding flow.
+  if(!state.onboarded){ window.location.replace('start.html'); return; }
   touchStreak();
   renderChrome();
   renderToday();

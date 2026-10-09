@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<!--
+  simplify — ONBOARDING (4 steps). Saves choices to localStorage (simplify_state_v1) then opens app.html.
+  AUTH LATER: after the first brief, app.html will offer "Save your progress" (sign up). Returning
+  signed-in users should skip this page entirely.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Set up simplify</title>
+<meta name="theme-color" content="#FAFAFA">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--primary:#4F46E5;--soft:rgba(79,70,229,.08);--muted:#6B7280;--line:rgba(10,10,10,.12);
+--display:'Inter Tight',system-ui,-apple-system,'Segoe UI',sans-serif;--body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{font-family:var(--body);background:var(--white);color:var(--black);-webkit-font-smoothing:antialiased;line-height:1.5}
+.shell{max-width:640px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:22px 22px max(28px,env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:34px}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.03em;text-decoration:none;color:var(--black)}
+.brand i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-left:3px}
+.back{background:none;border:0;font:500 14px var(--body);color:var(--muted);cursor:pointer;padding:8px 0;visibility:hidden}
+.back.show{visibility:visible}
+.bar{height:4px;background:var(--line);border-radius:9px;overflow:hidden;margin-bottom:34px}
+.bar b{display:block;height:100%;width:25%;background:var(--primary);border-radius:9px;transition:width .35s ease}
+.step{display:none;flex:1;flex-direction:column}
+.step.on{display:flex;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.q{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--primary);margin-bottom:12px}
+h1{font-family:var(--display);font-size:clamp(30px,6vw,40px);letter-spacing:-.025em;line-height:1.1;margin-bottom:10px}
+.sub{color:var(--muted);font-size:16px;margin-bottom:26px}
+.opts{display:grid;gap:10px}
+.opts.two{grid-template-columns:1fr 1fr}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;width:100%;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:17px 18px;font:600 16px var(--body);color:var(--black);cursor:pointer;transition:border-color .15s,background .15s;min-height:58px}
+.opt small{display:block;font-weight:400;font-size:13.5px;color:var(--muted);margin-top:2px}
+.opt:hover{border-color:rgba(79,70,229,.5)}
+.opt.sel{border-color:var(--primary);background:var(--soft)}
+.opt .tick{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);flex:none;display:grid;place-items:center;color:#fff;font-size:13px}
+.opt.sel .tick{background:var(--primary);border-color:var(--primary)}
+.opt:focus-visible,.cta:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.foot{margin-top:auto;padding-top:28px}
+.cta{width:100%;background:var(--primary);color:#fff;border:0;border-radius:999px;padding:17px;font:600 16px var(--body);cursor:pointer;box-shadow:0 8px 24px rgba(79,70,229,.3);transition:opacity .15s}
+.cta:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.hint{text-align:center;font-size:13px;color:var(--muted);margin-top:12px;min-height:20px}
+/* loading */
+.load{align-items:center;justify-content:center;text-align:center}
+.spin{width:42px;height:42px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--primary);animation:sp .9s linear infinite;margin-bottom:26px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.checks{list-style:none;text-align:left;margin-top:26px;display:grid;gap:12px;font-size:16px}
+.checks li{display:flex;gap:12px;align-items:center;color:var(--muted);transition:color .3s}
+.checks li::before{content:'';width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex:none;transition:all .3s}
+.checks li.done{color:var(--black)}
+.checks li.done::before{background:var(--primary);border-color:var(--primary);content:'✓';color:#fff;font-size:12px;display:grid;place-items:center}
+@media (max-width:420px){.opts.two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.step.on{animation:none}.spin{animation-duration:2.5s}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <a class="brand" href="./">simplify<i></i></a>
+    <button class="back" id="back" type="button">← Back</button>
+  </div>
+  <div class="bar" id="barwrap" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><b id="bar"></b></div>
+
+  <section class="step on" data-step="1">
+    <div class="q">Step 1 of 4</div>
+    <h1>Who is simplify for today?</h1>
+    <p class="sub">This helps us pick the right examples.</p>
+    <div class="opts" data-key="role">
+      <button type="button" class="opt" data-v="Student">Student<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Working Professional">Working professional<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Founder/Investor">Founder or investor<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Other">Just curious<span class="tick"></span></button>
+    </div>
+    <div class="foot"><button class="cta" type="button" data-next disabled>Continue</button></div>
+  </section>
+
+  <section class="step" data-step="2">
+    <div class="q">Step 2 of 4</div>
+    <h1>What do you want to follow?</h1>
+    <p class="sub">Pick at least one. Your Today brief starts with these.</p>
+    <div class="opts two" data-key="interests" data-multi>
+      <button type="button" class="opt" data-v="Markets">Markets<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Policy">Policy<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Technology">Technology<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Startups">Startups<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Economy">Economy<span class="tick"></span></button>
+      <button type="button" class="opt" data-v="AI">AI<span class="tick"></span></button>
+    </div>
+    <div class="foot"><button class="cta" type="button" data-next disabled>Continue</button></div>
+  </section>
+
+  <section class="step" data-step="3">
+    <div class="q">Step 3 of 4</div>
+    <h1>How much time do you have?</h1>
+    <p class="sub">We’ll size your daily brief to fit.</p>
+    <div class="opts" data-key="readingTime">
+      <button type="button" class="opt" data-v="10 min">10 minutes<small>A quick, focused brief</small><span class="tick"></span></button>
+      <button type="button" class="opt" data-v="15 min">15 minutes<small>A fuller picture</small><span class="tick"></span></button>
+      <button type="button" class="opt" data-v="15+ min">More than 15 minutes<small>Deep and thorough</small><span class="tick"></span></button>
+    </div>
+    <div class="foot"><button class="cta" type="button" data-next disabled>Continue</button></div>
+  </section>
+
+  <section class="step" data-step="4">
+    <div class="q">Step 4 of 4</div>
+    <h1>How should we explain things?</h1>
+    <p class="sub">You can change this any time in Settings.</p>
+    <div class="opts" data-key="depth">
+      <button type="button" class="opt" data-v="New to this">New to this<small>Plain language, every term explained</small><span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Some knowledge">I know the basics<small>Light explanations, more context</small><span class="tick"></span></button>
+      <button type="button" class="opt" data-v="Advanced">Advanced<small>Skip the basics, show the nuance</small><span class="tick"></span></button>
+    </div>
+    <div class="foot"><button class="cta" type="button" id="finish" data-next disabled>Build my first brief</button></div>
+  </section>
+
+  <section class="step load" id="loading" aria-live="polite">
+    <div class="spin" aria-hidden="true"></div>
+    <h1>Building your first brief</h1>
+    <ul class="checks" id="checks">
+      <li>Matching stories to your interests</li>
+      <li>Setting your explanation depth</li>
+      <li>Preparing key concepts</li>
+      <li>Fitting it to your reading time</li>
+    </ul>
+    <p class="hint" id="fallback" style="display:none">Taking too long? <a href="app.html">Open simplify</a></p>
+  </section>
+</div>
+
+<script>
+(function(){
+  var KEY='simplify_state_v1';
+  var answers={role:null,interests:[],readingTime:null,depth:null};
+  var cur=1, steps=[].slice.call(document.querySelectorAll('.step[data-step]'));
+  var back=document.getElementById('back'), bar=document.getElementById('bar'), bw=document.getElementById('barwrap');
+
+  function show(n){
+    cur=n;
+    steps.forEach(function(s){s.classList.toggle('on',+s.getAttribute('data-step')===n);});
+    bar.style.width=(n*25)+'%'; bw.setAttribute('aria-valuenow',n);
+    back.classList.toggle('show',n>1);
+    window.scrollTo(0,0);
+  }
+  function ready(step){
+    var g=step.querySelector('.opts'), k=g.getAttribute('data-key');
+    var ok = k==='interests' ? answers.interests.length>0 : !!answers[k];
+    step.querySelector('[data-next]').disabled=!ok;
+  }
+  steps.forEach(function(step){
+    var g=step.querySelector('.opts'), k=g.getAttribute('data-key'), multi=g.hasAttribute('data-multi');
+    g.addEventListener('click',function(e){
+      var b=e.target.closest('.opt'); if(!b) return;
+      var v=b.getAttribute('data-v');
+      if(multi){
+        b.classList.toggle('sel');
+        answers[k]=[].slice.call(g.querySelectorAll('.opt.sel')).map(function(x){return x.getAttribute('data-v');});
+      }else{
+        [].forEach.call(g.querySelectorAll('.opt'),function(x){x.classList.remove('sel');});
+        b.classList.add('sel'); answers[k]=v;
+      }
+      ready(step);
+    });
+    step.querySelector('[data-next]').addEventListener('click',function(){
+      if(cur<4) show(cur+1); else finish();
+    });
+  });
+  back.addEventListener('click',function(){ if(cur>1) show(cur-1); });
+
+  function saveAnswers(){
+    var st={};
+    try{ st=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ st={}; }
+    var prof=st.profile||{};
+    prof.role=answers.role;
+    if(!prof.email) prof.email='Guest';
+    if(!prof.authMethod) prof.authMethod='Guest mode';
+    st.profile=prof;
+    st.interests=answers.interests;
+    st.readingTime=answers.readingTime;
+    st.depth=answers.depth;
+    st.onboarded=true;
+    if(!st.createdAt) st.createdAt=new Date().toISOString();
+    try{ localStorage.setItem(KEY,JSON.stringify(st)); return true; }catch(e){ return false; }
+  }
+  function finish(){
+    var ok=saveAnswers();
+    steps.forEach(function(s){s.classList.remove('on');});
+    document.getElementById('loading').classList.add('on');
+    document.getElementById('barwrap').style.visibility='hidden';
+    back.classList.remove('show');
+    var lis=document.querySelectorAll('#checks li'), i=0;
+    var t=setInterval(function(){
+      if(i<lis.length){ lis[i].classList.add('done'); i++; }
+      else{
+        clearInterval(t);
+        // If storage is blocked (private mode), pass choices in the URL instead.
+        var url='app.html';
+        if(!ok){
+          url+='?role='+encodeURIComponent(answers.role)+'&interests='+encodeURIComponent(answers.interests.join(','))+
+               '&time='+encodeURIComponent(answers.readingTime)+'&depth='+encodeURIComponent(answers.depth);
+        }
+        window.location.href=url;
+      }
+    },650);
+    setTimeout(function(){ document.getElementById('fallback').style.display='block'; },9000);
+  }
+})();
+</script>
+</body>
+</html>
