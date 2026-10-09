@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<!--
+  simplify — LANDING PAGE (v1.1, LOCKED; v1.1 only added the optional Sign in link)
+  Static page. No framework, no scroll-jacking, no build step.
+  Only change this file on a dev branch and check the Vercel preview first.
+  Flow: index.html -> start.html (onboarding) -> app.html (product)
+  AUTH LATER: add a "Sign in" link at the marked spot in the header.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>simplify — understand the news, don't just read it</title>
+<meta name="description" content="A calm daily brief that explains what happened, why it matters, who it affects and what happens next. Ask questions. Remember what you learn.">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>document.documentElement.className='js';</script>
+<style>
+:root{
+  --black:#0A0A0A; --white:#FAFAFA; --primary:#4F46E5; --primary-soft:rgba(79,70,229,.1);
+  --muted:#6B7280; --line:rgba(10,10,10,.1); --yellow:#F3D93B;
+  --display:'Inter Tight',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --gutter:clamp(20px,5vw,64px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--body);background:var(--white);color:var(--black);line-height:1.55;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.025em;line-height:1.05;font-weight:700}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--gutter)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--primary)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;background:var(--primary);color:#fff;text-decoration:none;font-weight:600;font-size:16px;padding:16px 28px;border-radius:999px;transition:transform .15s ease,box-shadow .15s ease;box-shadow:0 8px 28px rgba(79,70,229,.35)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(79,70,229,.45)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.btn.light{background:#fff;color:var(--black);box-shadow:none}
+
+/* header */
+header.top{position:absolute;top:0;left:0;right:0;z-index:5;padding:22px 0}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px;letter-spacing:-.03em}
+.brand i{width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block;margin-top:8px}
+.hdr-right{display:flex;align-items:center;gap:14px}
+.signin{color:#fff;font-size:14px;font-weight:600;text-decoration:none;padding:8px 4px}
+.signin[hidden]{display:none}
+.beta{font-size:11px;font-weight:600;letter-spacing:.1em;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25);padding:5px 11px;border-radius:999px}
+/* AUTH: put <a class="signin" href="signin.html">Sign in</a> next to .beta when auth ships */
+
+/* hero */
+.hero{background:radial-gradient(900px 500px at 75% 10%,rgba(79,70,229,.45),transparent 60%),var(--black);color:#fff;padding:150px 0 110px;min-height:92vh;min-height:92svh;display:flex;align-items:center}
+.hero .eyebrow{color:#A5B4FC;margin-bottom:22px;display:block}
+.hero h1{font-size:clamp(44px,8.4vw,104px);max-width:12ch;font-weight:800}
+.hero h1 em{font-style:normal;color:#A5B4FC}
+.hero p.lede{font-size:clamp(17px,2.2vw,22px);color:rgba(255,255,255,.72);max-width:34em;margin:28px 0 38px}
+.hero .note{margin-top:18px;font-size:13.5px;color:rgba(255,255,255,.5)}
+
+/* sections */
+section{padding:clamp(72px,11vw,140px) 0}
+.sec-head{max-width:760px;margin-bottom:48px}
+.sec-head h2{font-size:clamp(32px,5.4vw,60px);margin-top:14px}
+.sec-head p{color:var(--muted);font-size:clamp(16px,1.8vw,19px);margin-top:18px;max-width:34em}
+
+/* story swipe */
+.story{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.strip{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px var(--gutter) 22px;margin:0 calc(-1*var(--gutter));scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.panel{flex:0 0 min(82vw,340px);scroll-snap-align:center;border:1.5px solid var(--black);border-radius:20px;background:var(--white);padding:22px 22px 26px;min-height:360px;display:flex;flex-direction:column;position:relative}
+.panel-tag{align-self:flex-start;background:var(--yellow);border:1.5px solid var(--black);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:6px;margin-bottom:22px;transform:rotate(-1.5deg)}
+.panel h3{font-size:clamp(24px,3vw,30px);margin-bottom:16px}
+.panel .clip{font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:1.3;border-top:3px double var(--black);padding-top:12px;margin-top:auto}
+.panel .clip small{display:block;font-family:var(--body);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.chip{border:1.5px dashed var(--black);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:500;background:#fff}
+.chip:nth-child(2n){transform:rotate(1.5deg)}
+.chip:nth-child(3n){transform:rotate(-1.5deg)}
+.big{font-family:var(--display);font-weight:700;font-size:clamp(28px,3.4vw,38px);line-height:1.08;letter-spacing:-.025em;margin-top:auto}
+.big span{color:var(--primary)}
+.dots{display:flex;gap:8px;justify-content:center;margin-top:6px}
+.dots b{width:7px;height:7px;border-radius:50%;background:rgba(10,10,10,.18);transition:all .2s}
+.dots b.on{background:var(--primary);width:22px;border-radius:99px}
+.swipe-hint{text-align:center;font-size:13px;color:var(--muted);margin-top:12px}
+@media (min-width:1100px){
+  .strip{overflow:visible;padding:0;margin:0;gap:20px}
+  .panel{flex:1 1 0;min-width:0}
+  .dots,.swipe-hint{display:none}
+}
+
+/* product reveal */
+.reveal-sec{background:var(--white)}
+.brief-grid{display:grid;grid-template-columns:1fr;gap:48px;align-items:center}
+@media (min-width:960px){.brief-grid{grid-template-columns:.9fr 1.1fr;gap:72px}}
+.brief{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 30px 80px rgba(10,10,10,.1);padding:clamp(22px,3vw,34px)}
+.brief .meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:16px;gap:10px;flex-wrap:wrap}
+.pill{background:var(--primary-soft);color:var(--primary);font-weight:600;padding:4px 10px;border-radius:999px;font-size:11.5px}
+.brief h3{font-size:clamp(24px,3vw,32px);margin-bottom:12px}
+.brief .sum{color:#374151;font-size:16px;margin-bottom:22px}
+.row{padding:14px 0;border-top:1px solid var(--line)}
+.row b{display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);margin-bottom:4px}
+.row span{font-size:15.5px;color:#1f2937}
+.row .term{background:var(--primary-soft);padding:0 5px;border-radius:5px;font-weight:500}
+.ask{margin-top:6px;display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:10px 10px 10px 18px;font-size:14.5px;color:var(--muted)}
+.ask i{margin-left:auto;font-style:normal;background:var(--primary);color:#fff;border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px}
+.points{list-style:none;display:grid;gap:22px}
+.points li{display:grid;grid-template-columns:40px 1fr;gap:16px}
+.points .n{width:40px;height:40px;border-radius:12px;background:var(--black);color:#fff;font-family:var(--display);font-weight:700;display:grid;place-items:center}
+.points h3{font-size:22px;margin-bottom:4px;letter-spacing:-.02em}
+.points p{color:var(--muted);font-size:16px}
+.fine{font-size:12.5px;color:var(--muted);margin-top:14px;text-align:center}
+
+/* learn */
+.learn{background:var(--black);color:#fff}
+.learn .sec-head p{color:rgba(255,255,255,.65)}
+.learn .eyebrow{color:#A5B4FC}
+.cards3{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:860px){.cards3{grid-template-columns:repeat(3,1fr)}}
+.lc{border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:28px;background:rgba(255,255,255,.03)}
+.lc h3{font-size:22px;margin:14px 0 8px;letter-spacing:-.02em}
+.lc p{color:rgba(255,255,255,.62);font-size:15.5px}
+.lc .big-n{font-family:var(--display);font-size:44px;font-weight:800;color:#A5B4FC;letter-spacing:-.03em;line-height:1}
+
+/* final cta */
+.final{text-align:center;background:radial-gradient(700px 360px at 50% 100%,rgba(79,70,229,.14),transparent 70%),var(--white)}
+.final h2{font-size:clamp(32px,5.6vw,64px);max-width:16ch;margin:0 auto 22px}
+.final p{color:var(--muted);font-size:18px;max-width:30em;margin:0 auto 34px}
+.final .btn{box-shadow:0 8px 28px rgba(79,70,229,.3)}
+footer{border-top:1px solid var(--line);padding:30px 0 40px;font-size:13px;color:var(--muted)}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* reveal-on-scroll (only when JS ran; otherwise everything is visible) */
+.js .rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.js .rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.js .rv{opacity:1;transform:none;transition:none}.btn{transition:none}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="simplify home">simplify<i></i></a>
+    <span class="hdr-right"><a class="signin" id="signin-link" href="signin.html" hidden>Sign in</a><span class="beta">BETA</span></span>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">A calmer way to follow the news</span>
+    <h1>Understand the news. <em>Don’t just read it.</em></h1>
+    <p class="lede">One short daily brief that explains what happened, why it matters, who it affects and what comes next. Ask questions. Remember what you learn.</p>
+    <a class="btn" href="start.html">Start free <span aria-hidden="true">→</span></a>
+    <p class="note">Personalized in about 60 seconds. No account needed to try it.</p>
+  </div>
+</section>
+
+<section class="story" aria-labelledby="story-h">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">It starts like any day</span>
+      <h2 id="story-h">You just wanted to know what’s going on.</h2>
+    </div>
+    <div class="strip" id="strip" tabindex="0" aria-label="A short story, swipe to continue">
+      <article class="panel">
+        <span class="panel-tag">7:42 AM</span>
+        <h3>You open the news.</h3>
+        <div class="clip"><small>The Daily Chronicle</small>RBI maintains status quo amid persistent inflationary pressures</div>
+      </article>
+      <article class="panel">
+        <span class="panel-tag">Then it hits</span>
+        <h3>Then the jargon.</h3>
+        <div class="chips"><span class="chip">Monetary tightening?</span><span class="chip">Fiscal deficit?</span><span class="chip">Geopolitical headwinds?</span><span class="chip">Demand resilience?</span></div>
+      </article>
+      <article class="panel">
+        <span class="panel-tag">8:10 AM</span>
+        <h3>So you dig deeper.</h3>
+        <div class="chips"><span class="chip">Conflicting opinions</span><span class="chip">Ten tabs open</span><span class="chip">Still no clear answer</span><span class="chip">Too much, too fast</span></div>
+      </article>
+      <article class="panel">
+        <span class="panel-tag">The real question</span>
+        <h3>And you’re left with…</h3>
+        <p class="big">“Okay, but why should <span>I</span> care?”</p>
+      </article>
+    </div>
+    <div class="dots" id="dots" aria-hidden="true"><b class="on"></b><b></b><b></b><b></b></div>
+    <p class="swipe-hint">Swipe →</p>
+  </div>
+</section>
+
+<section class="reveal-sec" aria-labelledby="brief-h">
+  <div class="wrap brief-grid">
+    <div class="rv">
+      <span class="eyebrow">So we built simplify</span>
+      <h2 id="brief-h" style="font-size:clamp(32px,5.4vw,60px);margin:14px 0 30px">The answer, in about a minute.</h2>
+      <ol class="points">
+        <li><span class="n">1</span><div><h3>Plain language</h3><p>Jargon explained right where it appears, so you never need another tab.</p></div></li>
+        <li><span class="n">2</span><div><h3>Why it matters to you</h3><p>Who is affected, what changes, and what happens next.</p></div></li>
+        <li><span class="n">3</span><div><h3>Ask anything</h3><p>“Explain this simply.” “What’s the background?” Every story has Ask simplify.</p></div></li>
+      </ol>
+    </div>
+    <div class="rv">
+      <div class="brief" role="img" aria-label="Example of a simplify brief">
+        <div class="meta"><span class="pill">Economy</span><span>3 min read · Example</span></div>
+        <h3>The central bank held interest rates steady</h3>
+        <p class="sum">Borrowing costs stay where they are because prices are still rising faster than the bank wants.</p>
+        <div class="row"><b>What happened</b><span>The bank chose not to change its main <span class="term">repo rate</span> at this meeting.</span></div>
+        <div class="row"><b>Why it matters</b><span>Loan EMIs won’t get cheaper yet, and savings rates stay put.</span></div>
+        <div class="row"><b>Who’s affected</b><span>Home-loan borrowers, savers, and anyone planning a big purchase.</span></div>
+        <div class="row"><b>What’s next</b><span>The next review decides whether cuts begin.</span></div>
+        <div class="ask">Ask simplify: “What is a repo rate?” <i>Ask</i></div>
+      </div>
+      <p class="fine">Illustrative example, not a real news story.</p>
+    </div>
+  </div>
+</section>
+
+<section class="learn" aria-labelledby="learn-h">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Knowledge compounds</span>
+      <h2 id="learn-h">Read less. Remember more.</h2>
+      <p>Every story teaches you a concept. Small habits build up into real understanding.</p>
+    </div>
+    <div class="cards3">
+      <div class="lc rv"><div class="big-n">1 story</div><h3>A day, not a feed</h3><p>A short, finite brief sized to your reading time. One story understood beats ten skimmed.</p></div>
+      <div class="lc rv"><div class="big-n">Streaks</div><h3>Consistency over scrolling</h3><p>Your streak grows when you understand something, not when you scroll.</p></div>
+      <div class="lc rv"><div class="big-n">Concepts</div><h3>See ideas connect</h3><p>Concepts you learn link up across stories, so the next headline makes more sense.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap rv">
+    <h2>Understand more. Scroll less.</h2>
+    <p>Pick your interests and reading time. Your first brief is ready in under a minute.</p>
+    <a class="btn" href="start.html">Start free <span aria-hidden="true">→</span></a>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap"><span>© simplify · Beta</span><span>Beta uses sample stories. Live news is coming.</span></div>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function(){
+  try{ var c=window.SIMPLIFY_CONFIG; if(c && c.SUPABASE_URL && c.SUPABASE_ANON_KEY) document.getElementById('signin-link').hidden=false; }catch(e){}
+  try{
+    // reveal on scroll
+    var els=document.querySelectorAll('.rv');
+    if('IntersectionObserver' in window){
+      var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+      els.forEach(function(el){io.observe(el);});
+    }else{els.forEach(function(el){el.classList.add('in');});}
+    // swipe dots
+    var strip=document.getElementById('strip'),dots=document.querySelectorAll('#dots b');
+    if(strip&&dots.length){
+      strip.addEventListener('scroll',function(){
+        var p=strip.children[0],w=p.offsetWidth+16;
+        var i=Math.min(dots.length-1,Math.max(0,Math.round(strip.scrollLeft/w)));
+        dots.forEach(function(d,k){d.classList.toggle('on',k===i);});
+      },{passive:true});
+    }
+  }catch(e){
+    document.querySelectorAll('.rv').forEach(function(el){el.classList.add('in');});
+  }
+})();
+</script>
+</body>
+</html>

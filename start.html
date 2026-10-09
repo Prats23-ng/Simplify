@@ -25,6 +25,8 @@ body{font-family:var(--body);background:var(--white);color:var(--black);-webkit-
 .brand i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-left:3px}
 .back{background:none;border:0;font:500 14px var(--body);color:var(--muted);cursor:pointer;padding:8px 0;visibility:hidden}
 .back.show{visibility:visible}
+.signin-link{font-size:14px;font-weight:600;color:var(--primary);text-decoration:none}
+.signin-link[hidden]{display:none}
 .bar{height:4px;background:var(--line);border-radius:9px;overflow:hidden;margin-bottom:34px}
 .bar b{display:block;height:100%;width:25%;background:var(--primary);border-radius:9px;transition:width .35s ease}
 .step{display:none;flex:1;flex-direction:column}
@@ -64,6 +66,7 @@ h1{font-family:var(--display);font-size:clamp(30px,6vw,40px);letter-spacing:-.02
   <div class="top">
     <a class="brand" href="./">simplify<i></i></a>
     <button class="back" id="back" type="button">← Back</button>
+    <a class="signin-link" id="signin-link" href="signin.html" hidden>Sign in</a>
   </div>
   <div class="bar" id="barwrap" role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1"><b id="bar"></b></div>
 
@@ -132,6 +135,9 @@ h1{font-family:var(--display);font-size:clamp(30px,6vw,40px);letter-spacing:-.02
   </section>
 </div>
 
+<script src="config.js"></script>
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
 <script>
 (function(){
   var KEY='simplify_state_v1';
@@ -139,11 +145,21 @@ h1{font-family:var(--display);font-size:clamp(30px,6vw,40px);letter-spacing:-.02
   var cur=1, steps=[].slice.call(document.querySelectorAll('.step[data-step]'));
   var back=document.getElementById('back'), bar=document.getElementById('bar'), bw=document.getElementById('barwrap');
 
+  // Accounts: offer sign-in, and skip onboarding for returning signed-in users.
+  var A=window.SimplifyAuth;
+  if(A && A.enabled){
+    var sl=document.getElementById('signin-link');
+    A.getSession().then(function(sess){
+      if(!sess){ sl.hidden=false; return; }
+      A.fetchProfile().then(function(p){ if(p && p.onboarded) window.location.replace('app.html'); });
+    });
+  }
   function show(n){
     cur=n;
     steps.forEach(function(s){s.classList.toggle('on',+s.getAttribute('data-step')===n);});
     bar.style.width=(n*25)+'%'; bw.setAttribute('aria-valuenow',n);
     back.classList.toggle('show',n>1);
+    var sl2=document.getElementById('signin-link'); if(sl2) sl2.style.display = n>1 ? 'none' : '';
     window.scrollTo(0,0);
   }
   function ready(step){

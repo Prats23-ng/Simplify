@@ -309,6 +309,12 @@
   .pill-toggle .pill{ font-size:12.5px; font-weight:600; padding:6px 13px; border-radius:999px; background:var(--sidebar); color:var(--muted); border:1px solid var(--border); cursor:pointer; }
   .pill-toggle .pill.active{ background:var(--primary-soft); color:var(--primary); border-color:rgba(79,70,229,0.3); }
   .reset-btn{ font-size:12.5px; font-weight:700; color:#B91C1C; }
+  .acct-btn{ font-size:13px; font-weight:700; color:#fff; background:var(--primary); padding:9px 16px; border-radius:999px; white-space:nowrap; }
+  .acct-btn.ghost{ background:transparent; color:var(--ink); border:1px solid var(--border); }
+  .save-prompt{ display:none; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; background:var(--primary-soft); border-radius:14px; padding:12px 16px; margin:0 0 18px; font-size:13.5px; }
+  .save-prompt.show{ display:flex; }
+  .save-prompt a{ color:var(--primary); font-weight:700; text-decoration:none; }
+  .save-prompt button{ color:var(--muted); font-size:12.5px; font-weight:600; }
 
   .toast{ position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; font-size:13px; font-weight:600; padding:11px 20px; border-radius:999px; opacity:0; pointer-events:none; transition:all .25s ease; z-index:80; }
   .toast.visible{ opacity:1; transform:translateX(-50%) translateY(0); }
@@ -445,6 +451,7 @@
       <section class="view active" id="view-today">
         <div class="reading-col">
           <div class="greeting" id="greeting-text">Good morning.</div>
+          <div class="save-prompt" id="save-prompt"><span>Your progress is saved only in this browser.</span><span><a href="signin.html?mode=signup">Create a free account</a> &nbsp; <button type="button" onclick="dismissSavePrompt()">Not now</button></span></div>
           <div class="brief-title">Today's Brief</div>
           <div class="brief-meta" id="brief-meta-text">— stories · — min read</div>
           <div class="brief-progress-row">
@@ -599,8 +606,9 @@
             <div class="settings-row">
               <div>
                 <div class="settings-row-label" id="profile-email">—</div>
-                <div class="settings-row-sub" id="profile-authmethod">Simulated session</div>
+                <div class="settings-row-sub" id="profile-authmethod">Guest mode</div>
               </div>
+              <div id="account-actions"></div>
             </div>
           </div>
 
@@ -628,6 +636,9 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="config.js"></script>
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
 <script>
 /* ============================================================
    DATA LAYER — mock news dataset. Shaped so a real news API /
@@ -901,6 +912,7 @@ function load(){
 }
 function save(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+  if(window.SimplifyAuth) SimplifyAuth.queuePush(state);   // no-op for guests
 }
 
 /* ---------- Onboarding handoff ----------
@@ -973,7 +985,7 @@ function renderChrome(){
   document.getElementById('streak-count').textContent = state.streak;
   document.getElementById('points-count').textContent = state.points;
   document.getElementById('profile-email').textContent = state.profile.email;
-  document.getElementById('profile-authmethod').textContent = state.profile.authMethod;
+  renderAccount();
 
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -1450,6 +1462,32 @@ function renderSettings(){
   document.getElementById('delivery-toggle').innerHTML = times2.map(t=>
     `<button class="${state.deliveryTime===t?'active':''}" onclick="setDelivery('${t}')">${t}</button>`).join('');
 }
+function authOn(){ return !!(window.SimplifyAuth && SimplifyAuth.enabled); }
+function signedIn(){ return authOn() && !!SimplifyAuth.uid(); }
+function renderAccount(){
+  const el = document.getElementById('account-actions'); if(!el) return;
+  if(signedIn()){
+    el.innerHTML = '<button class="acct-btn ghost" onclick="doSignOut()">Sign out</button>';
+    document.getElementById('profile-authmethod').textContent = 'Signed in. Preferences and progress sync across your devices.';
+  }else if(authOn()){
+    el.innerHTML = '<a class="acct-btn" href="signin.html?mode=signup" style="text-decoration:none">Create account / Sign in</a>';
+    document.getElementById('profile-authmethod').textContent = 'Guest mode. Progress is saved only in this browser.';
+  }else{
+    el.innerHTML = '';
+    document.getElementById('profile-authmethod').textContent = 'Guest mode. Progress is saved only in this browser.';
+  }
+  const sp = document.getElementById('save-prompt');
+  if(sp){
+    const dismissed = (()=>{ try{ return localStorage.getItem('simplify_save_prompt_dismissed')==='1'; }catch(e){ return false; } })();
+    sp.classList.toggle('show', authOn() && !signedIn() && !dismissed && Object.keys(state.storiesRead||{}).length >= 1);
+  }
+}
+function dismissSavePrompt(){ try{ localStorage.setItem('simplify_save_prompt_dismissed','1'); }catch(e){} renderAccount(); }
+async function doSignOut(){
+  showToast('Signing out…');
+  try{ await SimplifyAuth.signOut(); }catch(e){}
+  window.location.replace('./');
+}
 function setRole(r){ state.profile.role = r; save(); renderSettings(); renderChrome(); showToast('Preference saved'); }
 function setReadingTime(t){ state.readingTime = t; save(); renderSettings(); renderToday(); showToast('Preference saved'); }
 function setDepth(d){ state.depth = d; save(); renderSettings(); showToast('Preference saved — explanations will adjust'); }
@@ -1460,11 +1498,14 @@ function toggleInterest(c){
 }
 function setDelivery(t){ state.deliveryTime = t; save(); renderSettings(); showToast('Preference saved'); }
 
-function resetAllData(){
-  if(!confirm('This clears your streak, saved stories, concepts and preferences from this browser. Continue?')) return;
+async function resetAllData(){
+  const cloud = signedIn();
+  if(!confirm(cloud ? 'This clears your streak, saved stories, concepts and preferences from your account and this browser. Continue?' : 'This clears your streak, saved stories, concepts and preferences from this browser. Continue?')) return;
   localStorage.removeItem(STORAGE_KEY);
   state = defaultState();
+  if(cloud){ state.profile.uid = SimplifyAuth.uid(); state.profile.email = SimplifyAuth.email(); state.profile.authMethod = 'Email account'; }
   save();
+  if(cloud){ try{ await SimplifyAuth.pushNow(state); }catch(e){} }
   initApp();
   showToast('Your Simplify data has been reset');
 }
@@ -1485,7 +1526,17 @@ function initApp(){
   renderCompounds();
   renderSettings();
 }
-initApp();
+
+// Boot: apply onboarding hand-off, pull the account (if signed in), then render.
+(async function boot(){
+  applyOnboardingHandoff();
+  if(authOn()){
+    try{
+      await Promise.race([ SimplifyAuth.hydrate(state), new Promise(res=>setTimeout(res, 4000)) ]);
+    }catch(e){}
+  }
+  initApp();
+})();
 
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape' && document.getElementById('story-overlay').classList.contains('active')) closeStory();

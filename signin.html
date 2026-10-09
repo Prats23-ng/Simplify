@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in · simplify</title>
+<meta name="theme-color" content="#FAFAFA">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--primary:#4F46E5;--soft:rgba(79,70,229,.08);--muted:#6B7280;--line:rgba(10,10,10,.14);--err:#B91C1C;--ok:#15803D;
+--display:'Inter Tight',system-ui,-apple-system,'Segoe UI',sans-serif;--body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);background:var(--white);color:var(--black);-webkit-font-smoothing:antialiased;line-height:1.5}
+.shell{max-width:440px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:22px 22px max(28px,env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:40px}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.03em;text-decoration:none;color:var(--black)}
+.brand i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-left:3px}
+.top a.alt{font-size:14px;color:var(--muted);text-decoration:none}
+h1{font-family:var(--display);font-size:clamp(30px,7vw,38px);letter-spacing:-.025em;line-height:1.1;margin-bottom:8px}
+.sub{color:var(--muted);font-size:16px;margin-bottom:26px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:rgba(10,10,10,.06);border-radius:999px;padding:4px;margin-bottom:26px}
+.tabs button{border:0;background:none;font:600 14.5px var(--body);padding:11px;border-radius:999px;cursor:pointer;color:var(--muted)}
+.tabs button.on{background:#fff;color:var(--black);box-shadow:0 1px 3px rgba(10,10,10,.12)}
+label{display:block;font-size:13.5px;font-weight:600;margin:0 0 6px}
+.field{margin-bottom:16px;position:relative}
+input{width:100%;font:400 16px var(--body);padding:15px 16px;border:1.5px solid var(--line);border-radius:14px;background:#fff;color:var(--black)}
+input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--soft)}
+.pw input{padding-right:70px}
+.eye{position:absolute;right:6px;top:27px;border:0;background:none;font:600 13px var(--body);color:var(--primary);padding:10px;cursor:pointer}
+.hintline{font-size:12.5px;color:var(--muted);margin-top:6px}
+.cta{width:100%;background:var(--primary);color:#fff;border:0;border-radius:999px;padding:16px;font:600 16px var(--body);cursor:pointer;box-shadow:0 8px 24px rgba(79,70,229,.28);margin-top:6px}
+.cta:disabled{opacity:.5;cursor:wait}
+.msg{font-size:14.5px;border-radius:12px;padding:12px 14px;margin-bottom:18px;display:none}
+.msg.err{display:block;background:rgba(185,28,28,.07);color:var(--err)}
+.msg.ok{display:block;background:rgba(21,128,61,.08);color:var(--ok)}
+.linkbtn{background:none;border:0;color:var(--primary);font:600 14.5px var(--body);cursor:pointer;padding:6px 0}
+.row{display:flex;justify-content:space-between;margin-top:14px;gap:10px;flex-wrap:wrap}
+.guest{margin-top:auto;padding-top:34px;text-align:center;font-size:14px;color:var(--muted)}
+.guest a{color:var(--black);font-weight:600}
+.panel{display:none}.panel.on{display:block}
+.off{padding:18px;border:1.5px dashed var(--line);border-radius:16px;color:var(--muted);font-size:15px}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="brand" href="./">simplify<i></i></a><a class="alt" href="./">← Home</a></div>
+
+  <!-- Accounts not configured yet -->
+  <div class="panel" id="p-off">
+    <h1>Accounts are coming soon</h1>
+    <p class="sub">You can use simplify as a guest right now. Your progress is saved in this browser.</p>
+    <a class="cta" style="display:block;text-align:center;text-decoration:none" href="start.html">Continue as guest</a>
+  </div>
+
+  <!-- Sign in / create account -->
+  <div class="panel" id="p-main">
+    <h1 id="title">Welcome back</h1>
+    <p class="sub" id="subtitle">Sign in to pick up where you left off.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" id="t-in" class="on" role="tab">Sign in</button>
+      <button type="button" id="t-up" role="tab">Create account</button>
+    </div>
+    <div class="msg" id="msg" role="alert" aria-live="polite"></div>
+    <form id="form" novalidate>
+      <div class="field"><label for="email">Email</label>
+        <input id="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" required></div>
+      <div class="field pw"><label for="pw">Password</label>
+        <input id="pw" type="password" autocomplete="current-password" placeholder="At least 8 characters" required>
+        <button type="button" class="eye" id="eye" aria-label="Show password">Show</button>
+        <div class="hintline" id="pwhint" style="display:none">Use at least 8 characters.</div></div>
+      <button class="cta" id="go" type="submit">Sign in</button>
+    </form>
+    <div class="row"><button class="linkbtn" id="forgot" type="button">Forgot password?</button></div>
+  </div>
+
+  <!-- Forgot password -->
+  <div class="panel" id="p-forgot">
+    <h1>Reset your password</h1>
+    <p class="sub">Enter your email and we’ll send you a link to choose a new one.</p>
+    <div class="msg" id="msg2" role="alert" aria-live="polite"></div>
+    <form id="fform" novalidate>
+      <div class="field"><label for="femail">Email</label>
+        <input id="femail" type="email" inputmode="email" autocomplete="email" autocapitalize="none" placeholder="you@example.com" required></div>
+      <button class="cta" id="fgo" type="submit">Send reset link</button>
+    </form>
+    <div class="row"><button class="linkbtn" id="back1" type="button">← Back to sign in</button></div>
+  </div>
+
+  <!-- Choose new password (arrives from the reset email) -->
+  <div class="panel" id="p-new">
+    <h1>Choose a new password</h1>
+    <p class="sub">Use at least 8 characters.</p>
+    <div class="msg" id="msg3" role="alert" aria-live="polite"></div>
+    <form id="nform" novalidate>
+      <div class="field"><label for="npw">New password</label>
+        <input id="npw" type="password" autocomplete="new-password" required></div>
+      <button class="cta" id="ngo" type="submit">Save password</button>
+    </form>
+  </div>
+
+  <!-- Check your inbox -->
+  <div class="panel" id="p-sent">
+    <h1>Check your email</h1>
+    <p class="sub" id="sent-text">We sent you a link. Open it on this device to continue.</p>
+    <p class="hintline">Not there? Check spam, or wait a minute. <button class="linkbtn" id="back2" type="button">Back</button></p>
+  </div>
+
+  <div class="guest" id="guestline">Just looking? <a href="start.html">Continue as guest</a></div>
+</div>
+
+<script src="config.js"></script>
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+<script>
+(function(){
+  var A = window.SimplifyAuth, $ = function(id){ return document.getElementById(id); };
+  var mode = 'in';
+  var qs = new URLSearchParams(location.search);
+
+  function panel(id){ ['p-off','p-main','p-forgot','p-new','p-sent'].forEach(function(p){ $(p).classList.toggle('on', p === id); }); $('guestline').style.display = (id==='p-main'||id==='p-off') ? '' : 'none'; }
+  function say(el, text, kind){ el.className = 'msg ' + (kind || 'err'); el.textContent = text; }
+  function clear(el){ el.className = 'msg'; el.textContent = ''; }
+  function busy(btn, on, label){ btn.disabled = on; if(label) btn.textContent = label; }
+  function toApp(){ location.replace('app.html'); }
+
+  if(!A || !A.enabled){ panel('p-off'); return; }
+
+  function setMode(m){
+    mode = m;
+    $('t-in').classList.toggle('on', m==='in'); $('t-up').classList.toggle('on', m==='up');
+    $('title').textContent = m==='in' ? 'Welcome back' : 'Create your account';
+    $('subtitle').textContent = m==='in' ? 'Sign in to pick up where you left off.' : 'Save your progress and preferences across devices.';
+    $('go').textContent = m==='in' ? 'Sign in' : 'Create account';
+    $('pw').autocomplete = m==='in' ? 'current-password' : 'new-password';
+    $('pwhint').style.display = m==='up' ? 'block' : 'none';
+    $('forgot').style.display = m==='in' ? '' : 'none';
+    clear($('msg'));
+  }
+  $('t-in').onclick = function(){ setMode('in'); };
+  $('t-up').onclick = function(){ setMode('up'); };
+  $('eye').onclick = function(){
+    var show = $('pw').type === 'password';
+    $('pw').type = show ? 'text' : 'password'; $('eye').textContent = show ? 'Hide' : 'Show';
+    $('eye').setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  };
+  $('forgot').onclick = function(){ $('femail').value = $('email').value; clear($('msg2')); panel('p-forgot'); };
+  $('back1').onclick = function(){ panel('p-main'); };
+  $('back2').onclick = function(){ panel('p-main'); };
+
+  var okEmail = function(v){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v); };
+
+  $('form').addEventListener('submit', function(e){
+    e.preventDefault(); clear($('msg'));
+    var em = $('email').value.trim().toLowerCase(), pw = $('pw').value;
+    if(!okEmail(em)) return say($('msg'), 'Enter a valid email address.');
+    if(mode === 'up' && pw.length < 8) return say($('msg'), 'Choose a password with at least 8 characters.');
+    if(!pw) return say($('msg'), 'Enter your password.');
+    var label = $('go').textContent; busy($('go'), true, mode==='in' ? 'Signing in…' : 'Creating account…');
+    var p = mode === 'in' ? A.signIn(em, pw).then(toApp)
+          : A.signUp(em, pw).then(function(r){
+              if(r.signedIn) return toApp();
+              $('sent-text').textContent = 'We sent a verification link to ' + em + '. Open it on this device to finish creating your account.';
+              panel('p-sent');
+            });
+    p.catch(function(err){ say($('msg'), A.nice(err)); }).then(function(){ busy($('go'), false, label); });
+  });
+
+  $('fform').addEventListener('submit', function(e){
+    e.preventDefault(); clear($('msg2'));
+    var em = $('femail').value.trim().toLowerCase();
+    if(!okEmail(em)) return say($('msg2'), 'Enter a valid email address.');
+    busy($('fgo'), true, 'Sending…');
+    A.resetPassword(em).then(function(){
+      say($('msg2'), 'If an account exists for ' + em + ', a reset link is on its way.', 'ok');
+    }).catch(function(err){ say($('msg2'), A.nice(err)); }).then(function(){ busy($('fgo'), false, 'Send reset link'); });
+  });
+
+  $('nform').addEventListener('submit', function(e){
+    e.preventDefault(); clear($('msg3'));
+    var pw = $('npw').value;
+    if(pw.length < 8) return say($('msg3'), 'Choose a password with at least 8 characters.');
+    busy($('ngo'), true, 'Saving…');
+    A.updatePassword(pw).then(function(){
+      say($('msg3'), 'Password updated. Taking you in…', 'ok'); setTimeout(toApp, 900);
+    }).catch(function(err){ say($('msg3'), A.nice(err)); busy($('ngo'), false, 'Save password'); });
+  });
+
+  // ---- entry routing ----
+  var hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+  var linkErr = hash.get('error_description') || qs.get('error_description');
+  if(qs.get('mode') === 'signup') setMode('up'); else setMode('in');
+
+  if(A.isRecovery() || qs.get('mode') === 'reset'){
+    panel('p-new');
+    // wait for the recovery session to be established from the link
+    A.getSession().then(function(s){
+      if(!s && !A.isRecovery()){ panel('p-main'); say($('msg'), 'That reset link has expired. Request a new one.'); }
+    });
+    A.onChange(function(ev){ if(ev === 'PASSWORD_RECOVERY') panel('p-new'); });
+  }else{
+    panel('p-main');
+    if(linkErr){ say($('msg'), /expired|invalid/i.test(linkErr) ? 'That link has expired. Request a new one by signing in or resetting your password.' : linkErr.replace(/\+/g,' ')); }
+    else if(qs.get('confirmed')){ say($('msg'), 'Signing you in…', 'ok'); }
+    A.getSession().then(function(s){
+      if(s && !linkErr){ toApp(); }
+      else if(qs.get('confirmed') && !s){ say($('msg'), 'Email confirmed. You can sign in now.', 'ok'); }
+    });
+    A.onChange(function(ev, s){ if(ev === 'SIGNED_IN' && s && qs.get('confirmed')) toApp(); });
+  }
+})();
+</script>
+</body>
+</html>
