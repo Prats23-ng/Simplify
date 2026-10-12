@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy · simplify</title>
+<meta name="theme-color" content="#FAFAFA">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--primary:#4F46E5;--muted:#6B7280;--line:rgba(10,10,10,.14);
+--display:'Inter Tight',system-ui,-apple-system,'Segoe UI',sans-serif;--body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);background:var(--white);color:var(--black);-webkit-font-smoothing:antialiased;line-height:1.65;font-size:16px}
+.shell{max-width:680px;margin:0 auto;padding:22px 22px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:34px}
+.brand{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.03em;text-decoration:none;color:var(--black)}
+.brand i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--primary);margin-left:3px}
+.top a.alt{font-size:14px;color:var(--muted);text-decoration:none}
+.draft{background:rgba(79,70,229,.08);border:1px solid rgba(79,70,229,.25);border-radius:14px;padding:12px 16px;font-size:14px;margin-bottom:26px}
+h1{font-family:var(--display);font-size:clamp(30px,7vw,40px);letter-spacing:-.025em;line-height:1.1;margin-bottom:6px}
+.upd{color:var(--muted);font-size:14px;margin-bottom:26px}
+h2{font-family:var(--display);font-size:20px;letter-spacing:-.01em;margin:30px 0 8px}
+p,li{color:#1F2937}
+p{margin-bottom:12px}
+ul{margin:0 0 12px 22px}
+li{margin-bottom:6px}
+a{color:var(--primary)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><a class="brand" href="index.html">simplify<i></i></a><a class="alt" href="index.html">Back to home</a></div>
+  <div class="draft"><strong>Draft for beta.</strong> This page is a plain-language draft and still needs review by a lawyer before a public launch.</div>
+  <h1>Privacy</h1>
+  <p class="upd">Last updated: 13 October 2026</p>
+  <p>simplify is a small beta product. This page explains, in plain words, what we collect and why.</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Account details</strong>, if you create an account: your email address and a password (stored by our sign-in provider as a secure hash, never in plain text).</li>
+    <li><strong>Your setup and progress:</strong> the role, interests, reading time and depth you chose, stories you marked as understood or saved, concepts learned, points and streak.</li>
+    <li><strong>Questions you ask</strong> the AI tutor. Each question, together with the story it refers to, is sent to a third-party AI model provider to produce an answer, and that provider's own policies apply to it. We do not save the text of your questions in your account or our database; your question history stays in your own browser. We only keep a timestamped count of how many questions you ask each day, to apply a daily limit.</li>
+    <li><strong>Anonymous usage events</strong>, for example "opened a story" or "finished onboarding", linked to a random ID kept in your browser, not to your name. If you are signed in, the event may also carry your account ID. We do not use cookies for this and we never record the text of your questions in these events.</li>
+    <li><strong>Feedback</strong> you choose to send, plus a contact detail only if you add one.</li>
+  </ul>
+
+  <h2>Why</h2>
+  <p>To make the product work (save your progress, personalise your brief), to answer your questions, and to learn whether the product is useful so we can improve it.</p>
+
+  <h2>Where it is stored and who processes it</h2>
+  <ul>
+    <li>Your account and saved progress are stored with Supabase, our database and sign-in provider.</li>
+    <li>The site is hosted on Vercel.</li>
+    <li>Questions to the AI tutor, along with the story text they refer to, are processed by a third-party AI model provider.</li>
+    <li>If you use the product as a guest, your progress stays in your own browser only.</li>
+  </ul>
+
+  <h2>What we do not do</h2>
+  <p>We do not sell your data and we do not show ads. We do not ask for payment details.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li>In Settings, "Reset everything" clears your progress and preferences from this browser and your account.</li>
+    <li>To delete your account and the data tied to it, or to ask what we hold about you, email <strong>[contact email]</strong>.</li>
+    <li>You can use the product as a guest without giving an email.</li>
+  </ul>
+
+  <h2>Questions or changes</h2>
+  <p>Contact: <strong>[contact email]</strong>. We will update this page if what we collect changes.</p>
+
+  <p style="margin-top:34px;color:var(--muted);font-size:14px"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="index.html">Home</a></p>
+</div>
+<script src="config.js"></script>
+<script src="track.js"></script>
+</body>
+</html>

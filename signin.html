@@ -109,13 +109,16 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   </div>
 
   <div class="guest" id="guestline">Just looking? <a href="start.html">Continue as guest</a></div>
+  <div class="guest" style="margin-top:10px;font-size:13px"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></div>
 </div>
 
 <script src="config.js"></script>
 <script src="supabase.js"></script>
 <script src="auth.js"></script>
+<script src="track.js"></script>
 <script>
 (function(){
+  try{ if(window.SimplifyTrack) SimplifyTrack.event('signin_view'); }catch(e){}
   var A = window.SimplifyAuth, $ = function(id){ return document.getElementById(id); };
   var mode = 'in';
   var qs = new URLSearchParams(location.search);
@@ -161,6 +164,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
     var label = $('go').textContent; busy($('go'), true, mode==='in' ? 'Signing in…' : 'Creating account…');
     var p = mode === 'in' ? A.signIn(em, pw).then(toApp)
           : A.signUp(em, pw).then(function(r){
+              try{ if(window.SimplifyTrack){ SimplifyTrack.event('signup_complete', { instant: !!r.signedIn }); SimplifyTrack.flush(); } }catch(e){}
               if(r.signedIn) return toApp();
               $('sent-text').textContent = 'We sent a verification link to ' + em + '. Open it on this device to finish creating your account.';
               panel('p-sent');

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  simplify — LANDING PAGE (v1, LOCKED)
+  simplify — LANDING PAGE (v1.1, LOCKED; v1.1 only added the optional Sign in link)
   Static page. No framework, no scroll-jacking, no build step.
   Only change this file on a dev branch and check the Vercel preview first.
   Flow: index.html -> start.html (onboarding) -> app.html (product)
@@ -44,6 +44,9 @@ header.top{position:absolute;top:0;left:0;right:0;z-index:5;padding:22px 0}
 header.top .wrap{display:flex;align-items:center;justify-content:space-between}
 .brand{font-family:var(--display);font-weight:800;font-size:22px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px;letter-spacing:-.03em}
 .brand i{width:6px;height:6px;border-radius:50%;background:var(--primary);display:inline-block;margin-top:8px}
+.hdr-right{display:flex;align-items:center;gap:14px}
+.signin{color:#fff;font-size:14px;font-weight:600;text-decoration:none;padding:8px 4px}
+.signin[hidden]{display:none}
 .beta{font-size:11px;font-weight:600;letter-spacing:.1em;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25);padding:5px 11px;border-radius:999px}
 /* AUTH: put <a class="signin" href="signin.html">Sign in</a> next to .beta when auth ships */
 
@@ -138,7 +141,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 <header class="top">
   <div class="wrap">
     <a class="brand" href="./" aria-label="simplify home">simplify<i></i></a>
-    <span class="beta">BETA</span>
+    <span class="hdr-right"><a class="signin" id="signin-link" href="signin.html" hidden>Sign in</a><span class="beta">BETA</span></span>
   </div>
 </header>
 
@@ -222,7 +225,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
     </div>
     <div class="cards3">
       <div class="lc rv"><div class="big-n">1 story</div><h3>A day, not a feed</h3><p>A short, finite brief sized to your reading time. One story understood beats ten skimmed.</p></div>
-      <div class="lc rv"><div class="big-n">Streaks</div><h3>Consistency over scrolling</h3><p>Your streak grows when you understand something, not when you scroll.</p></div>
+      <div class="lc rv"><div class="big-n">Streaks</div><h3>Consistency over scrolling</h3><p>Your streak grows each day you open a story. Understanding it is what earns your points.</p></div>
       <div class="lc rv"><div class="big-n">Concepts</div><h3>See ideas connect</h3><p>Concepts you learn link up across stories, so the next headline makes more sense.</p></div>
     </div>
   </div>
@@ -238,11 +241,15 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 </main>
 
 <footer>
-  <div class="wrap"><span>© simplify · Beta</span><span>Beta uses sample stories. Live news is coming.</span></div>
+  <div class="wrap"><span>© simplify · Beta · <a href="privacy.html" style="color:inherit">Privacy</a> · <a href="terms.html" style="color:inherit">Terms</a></span><span>Beta uses sample stories. Live news is coming.</span></div>
 </footer>
 
+<script src="config.js"></script>
+<script src="track.js"></script>
 <script>
 (function(){
+  try{ if(window.SimplifyTrack) SimplifyTrack.event('landing_view'); }catch(e){}
+  try{ var c=window.SIMPLIFY_CONFIG; if(c && c.SUPABASE_URL && c.SUPABASE_ANON_KEY) document.getElementById('signin-link').hidden=false; }catch(e){}
   try{
     // reveal on scroll
     var els=document.querySelectorAll('.rv');

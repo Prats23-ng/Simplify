@@ -45,7 +45,7 @@
   function readState(){ try{ return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }catch(e){ return {}; } }
   function writeState(s){ try{ localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){} }
 
-  var PROGRESS_KEYS = ['storiesRead','storiesSaved','quizResults','askHistory','conceptsLearned','points','streak','lastActiveDate','searches'];
+  var PROGRESS_KEYS = ['storiesRead','storiesSaved','quizResults','conceptsLearned','removedRead','removedSaved','askAwards','points','streak','lastActiveDate','searches'];
 
   function payloadFrom(st){
     var prog = {};
@@ -57,20 +57,47 @@
       interests: Array.isArray(st.interests) ? st.interests : [],
       reading_time: st.readingTime || null,
       depth: st.depth || null,
-      delivery_time: st.deliveryTime || null,
       onboarded: !!st.onboarded,
       progress: prog
     };
   }
 
   function union(a, b){ var o = {}, k; a = a || {}; b = b || {}; for(k in a) o[k] = a[k]; for(k in b) o[k] = b[k]; return o; }
+  function maxMap(a, b){            // union, keeping the larger value per key (ISO times and counts compare correctly)
+    var o = {}, k; a = a || {}; b = b || {};
+    for(k in a) o[k] = a[k];
+    for(k in b){ if(!(k in o) || b[k] > o[k]) o[k] = b[k]; }
+    return o;
+  }
+  function stamp(v){ var t = (v && typeof v === 'object') ? v.readAt : v; return typeof t === 'string' ? t : ''; }
+  // Older saves have no askAwards: keep their AI-question points (capped) once.
+  function awardsOf(o){
+    if(o && o.askAwards) return o.askAwards;
+    var n = 0, h = (o && o.askHistory) || {};
+    for(var k in h) n += Array.isArray(h[k]) ? h[k].length : 0;
+    return n ? { legacy: Math.min(n, 20) } : {};
+  }
+  // Same formula as the app: points are derived, so syncing can never inflate or resurrect them.
+  function computePoints(read, concepts, awards){
+    var a = 0, k; for(k in awards) a += (+awards[k] || 0);
+    return 10 * Object.keys(read).length + 3 * Object.keys(concepts).length + 2 * a;
+  }
+  /* Merge guest/local progress with the account's. Un-marking or un-saving leaves a "tombstone" time,
+     so a story removed on one device is not brought back by the union with an older copy. */
   function mergeProgress(local, cloud){
     cloud = cloud || {};
     var out = {};
-    ['storiesRead','storiesSaved','quizResults','askHistory','conceptsLearned'].forEach(function(k){
-      out[k] = union(cloud[k], local[k]);
-    });
-    out.points = Math.max(+local.points || 0, +cloud.points || 0);
+    out.removedRead = maxMap(cloud.removedRead, local.removedRead);
+    out.removedSaved = maxMap(cloud.removedSaved, local.removedSaved);
+    var read = union(cloud.storiesRead, local.storiesRead), id;
+    for(id in read){ if(out.removedRead[id] && out.removedRead[id] >= stamp(read[id])) delete read[id]; }
+    out.storiesRead = read;
+    var saved = union(cloud.storiesSaved, local.storiesSaved);
+    for(id in saved){ if(out.removedSaved[id] && out.removedSaved[id] >= stamp(saved[id])) delete saved[id]; }
+    out.storiesSaved = saved;
+    ['quizResults','conceptsLearned'].forEach(function(k){ out[k] = union(cloud[k], local[k]); });   // askHistory is deliberately NOT synced (privacy): it stays in this browser
+    out.askAwards = maxMap(awardsOf(cloud), awardsOf(local));
+    out.points = computePoints(out.storiesRead, out.conceptsLearned, out.askAwards);
     var lc = local.lastActiveDate || '', cc = cloud.lastActiveDate || '';
     if(lc > cc || (lc === cc && (+local.streak || 0) >= (+cloud.streak || 0))){ out.streak = +local.streak || 1; out.lastActiveDate = local.lastActiveDate || null; }
     else { out.streak = +cloud.streak || 1; out.lastActiveDate = cloud.lastActiveDate || null; }
@@ -81,11 +108,13 @@
   }
   function clearProgress(st){
     st.storiesRead = {}; st.storiesSaved = {}; st.quizResults = {}; st.askHistory = {}; st.conceptsLearned = {};
+    st.removedRead = {}; st.removedSaved = {}; st.askAwards = {};
     st.points = 0; st.streak = 1; st.lastActiveDate = null; st.searches = [];
   }
 
   var api = {
     enabled: enabled,
+    _mergeProgress: mergeProgress,   // exposed for tests
     isRecovery: function(){ return recovery; },
     uid: function(){ return uid; },
     email: function(){ return email; },
@@ -153,7 +182,6 @@
             if(row.interests && row.interests.length) st.interests = row.interests;
             if(row.reading_time) st.readingTime = row.reading_time;
             if(row.depth) st.depth = row.depth;
-            if(row.delivery_time) st.deliveryTime = row.delivery_time;
             st.onboarded = true;
             var merged = mergeProgress(st, row.progress);
             Object.keys(merged).forEach(function(k){ st[k] = merged[k]; });

@@ -225,6 +225,12 @@
   .ask-q{ align-self:flex-end; font-size:13px; font-weight:600; background:var(--primary); color:#fff; padding:9px 14px; border-radius:14px 14px 2px 14px; max-width:85%; }
   .ask-a{ font-size:13.5px; line-height:1.6; color:#1F2937; background:var(--surface); border:1px solid var(--border); border-radius:14px 14px 14px 2px; padding:12px 15px; max-width:92%; }
   .ask-a.thinking{ color:var(--muted); font-style:italic; }
+  .sd-source-link{ color:var(--primary); text-decoration:none; }
+  .ai-note{ font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:10px; }
+  .ai-note a{ color:var(--primary); font-weight:600; text-decoration:none; }
+  .ask-offline{ margin-top:8px; font-size:11.5px; color:var(--muted); line-height:1.5; }
+  .ask-offline strong{ color:#92400E; font-weight:700; }
+  .ask-offline a{ color:var(--primary); font-weight:600; }
 
   .sd-footer{ display:flex; align-items:center; justify-content:space-between; padding-top:22px; margin-top:8px; border-top:1px solid var(--border-soft); }
   .mark-done-btn{ display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:700; color:#fff; background:var(--ink); padding:11px 20px; border-radius:999px; transition:transform .15s ease; }
@@ -308,6 +314,10 @@
   .pill-toggle{ display:flex; flex-wrap:wrap; gap:8px; }
   .pill-toggle .pill{ font-size:12.5px; font-weight:600; padding:6px 13px; border-radius:999px; background:var(--sidebar); color:var(--muted); border:1px solid var(--border); cursor:pointer; }
   .pill-toggle .pill.active{ background:var(--primary-soft); color:var(--primary); border-color:rgba(79,70,229,0.3); }
+  .fb-input{ width:100%; box-sizing:border-box; font:inherit; font-size:14px; color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:10px 12px; resize:vertical; }
+  .fb-input:focus{ outline:none; border-color:rgba(79,70,229,0.5); }
+  .sidebar-link{ font-size:12px; color:var(--muted); padding:6px 14px; text-align:left; }
+  .sidebar-link:hover{ color:var(--primary); }
   .reset-btn{ font-size:12.5px; font-weight:700; color:#B91C1C; }
   .acct-btn{ font-size:13px; font-weight:700; color:#fff; background:var(--primary); padding:9px 16px; border-radius:999px; white-space:nowrap; }
   .acct-btn.ghost{ background:transparent; color:var(--ink); border:1px solid var(--border); }
@@ -408,6 +418,7 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>
       <span class="nav-label">Collapse</span>
     </button>
+    <button class="sidebar-link nav-label" onclick="openFeedback()">Send feedback</button>
     <div class="sidebar-foot">
       <div class="avatar" id="sidebar-avatar">G</div>
       <div class="sidebar-user">
@@ -591,17 +602,6 @@
           </div>
 
           <div class="settings-section">
-            <div class="settings-title">Delivery</div>
-            <div class="settings-row">
-              <div>
-                <div class="settings-row-label">Daily delivery time</div>
-                <div class="settings-row-sub">When your brief is ready each morning.</div>
-              </div>
-              <div class="segmented" id="delivery-toggle"></div>
-            </div>
-          </div>
-
-          <div class="settings-section">
             <div class="settings-title">Account</div>
             <div class="settings-row">
               <div>
@@ -612,12 +612,28 @@
             </div>
           </div>
 
+          <div class="settings-section" id="feedback-section">
+            <div class="settings-title">Feedback</div>
+            <div class="settings-row-sub" style="margin:0 0 10px">This is a beta. Tell us what was confusing, missing or great. It goes straight to the builder.</div>
+            <textarea id="fb-message" class="fb-input" rows="4" maxlength="2000" placeholder="What was confusing or missing?"></textarea>
+            <input id="fb-contact" class="fb-input" type="text" maxlength="200" placeholder="Email or phone, only if you want a reply (optional)" style="margin-top:8px">
+            <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+              <button class="acct-btn" id="fb-send" onclick="sendFeedback()">Send feedback</button>
+              <span class="settings-row-sub" id="fb-status" style="margin:0"></span>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-title">About</div>
+            <div class="settings-row-sub"><a href="privacy.html" style="color:var(--primary);font-weight:600">Privacy</a> · <a href="terms.html" style="color:var(--primary);font-weight:600">Terms</a> · Stories in this beta are samples, not live news.</div>
+          </div>
+
           <div class="settings-section">
             <div class="settings-title">Data</div>
             <div class="settings-row">
               <div>
                 <div class="settings-row-label">Reset your Simplify data</div>
-                <div class="settings-row-sub">Clears streak, saved stories, concepts and preferences from this browser.</div>
+                <div class="settings-row-sub">Clears streak, saved stories, concepts and preferences from this browser, and from your account if you are signed in.</div>
               </div>
               <button class="reset-btn" onclick="resetAllData()">Reset everything</button>
             </div>
@@ -639,6 +655,8 @@
 <script src="config.js"></script>
 <script src="supabase.js"></script>
 <script src="auth.js"></script>
+<script src="track.js"></script>
+<script src="stories.js"></script>
 <script>
 /* ============================================================
    DATA LAYER — mock news dataset. Shaped so a real news API /
@@ -672,156 +690,40 @@ const CONCEPT_LIBRARY = {
   'fii-flows': { term:'FII flows', def:'Money moving in or out of a country\'s markets from Foreign Institutional Investors — a signal of global investor sentiment.' },
 };
 
-// Each story: id, date(YYYY-MM-DD), category (display taxonomy),
-// tags[] (interest-matching — from INTEREST_OPTIONS, can be several),
-// relevance(fallback text when no interest overlap), sections{whatHappened,
-// why, matters, next}, affected[], concepts[](keys into CONCEPT_LIBRARY),
-// sources[], relatedConceptSeen(optional key)
-const STORY_BANK = [
-  {
-    id:'rbi-repo-cut', date:'2026-09-17', category:'Policy',
-    tags:['Policy','Markets','Economy'],
-    headline:"RBI cuts repo rate by 25 basis points",
-    dek:"India's central bank lowered its key lending rate for the second time this year, citing cooling inflation.",
-    readMins:3,
-    relevance:"Matches your interest in Markets & Policy",
-    whatHappened:"The Reserve Bank of India's Monetary Policy Committee voted 5-1 to cut the repo rate from 6.25% to 6.00%, the rate at which it lends short-term funds to commercial banks.",
-    why:"Retail inflation has stayed below the RBI's 4% target for three straight months, giving the committee room to prioritise growth. Weak private investment and soft urban consumption added pressure to act.",
-    matters:"Lower policy rates typically flow through to cheaper home loans, auto loans and business credit within weeks, though banks don't always pass on the full cut immediately.",
-    next:"Watch bank MCLR announcements over the next 2-4 weeks, and the RBI's next policy meeting for signals on whether more cuts are coming.",
-    affected:['Homebuyers','Existing borrowers','Banks','Fixed-income investors','NBFCs'],
-    concepts:['repo-rate','monetary-policy','inflation'],
-    sources:['RBI Monetary Policy Statement','Reuters','Bloomberg'],
-  },
-  {
-    id:'bank-stocks-rally', date:'2026-09-17', category:'Markets',
-    tags:['Markets','Economy'],
-    headline:"Bank stocks rally on rate-cut expectations",
-    dek:"Nifty Bank rose 2.1% as investors priced in wider lending margins ahead of the RBI decision.",
-    readMins:2,
-    relevance:"Follows directly from today's rate decision",
-    whatHappened:"Shares of major private and public sector banks climbed through the session, with the Nifty Bank index closing 2.1% higher, its best single-day gain in six weeks.",
-    why:"Traders anticipated the rate cut and positioned early. Lower funding costs can widen the gap between what banks earn on loans and pay on deposits — at least in the near term.",
-    matters:"A sustained rally in bank stocks often lifts the broader index, since financials carry the heaviest weight on the Nifty and Sensex.",
-    next:"Q2 earnings season over the next month will show whether margins actually held up, or whether competitive pressure eats into the gains.",
-    affected:['Bank shareholders','NBFCs','Mutual fund investors','Retail traders'],
-    concepts:['nim','bond-yields','credit-growth'],
-    relatedConceptSeen:'repo-rate',
-    sources:['NSE data','Economic Times','Bloomberg'],
-  },
-  {
-    id:'apple-india-manufacturing', date:'2026-09-17', category:'Business',
-    tags:['Technology','Startups','Markets'],
-    headline:"Apple expands manufacturing investment in India",
-    dek:"The company will nearly double iPhone assembly capacity at its Tamil Nadu facilities by 2027.",
-    readMins:3,
-    relevance:"Matches your interest in Business & Technology",
-    whatHappened:"Apple confirmed a new investment round with supplier Foxconn to expand assembly lines in Tamil Nadu, aiming to produce roughly 25% of all iPhones globally from India by 2027.",
-    why:"Apple has been diversifying production away from China since 2020 due to tariff risk, supply disruptions during COVID, and geopolitical tension between the US and China.",
-    matters:"This is one of the largest single FDI commitments into Indian electronics manufacturing, and a vote of confidence in India's manufacturing policy push.",
-    next:"Expect supplier announcements from component makers and new hiring across Apple's assembly ecosystem over the next two quarters.",
-    affected:['Indian suppliers','Local employment','Foxconn','Apple shareholders'],
-    concepts:['supply-chain','fdi'],
-    sources:['Company statement','Reuters','The Economic Times'],
-  },
-  {
-    id:'startup-ipo-wave', date:'2026-09-17', category:'Finance',
-    tags:['Startups','Markets'],
-    headline:"Three consumer-tech startups file for IPOs this week",
-    dek:"A food-delivery, a fintech and a D2C beauty brand all filed draft prospectuses within days of each other.",
-    readMins:3,
-    relevance:"Matches your interest in Finance & Startups",
-    whatHappened:"Three well-known consumer startups filed draft red herring prospectuses with SEBI, together seeking to raise over ₹9,000 crore.",
-    why:"Strong public market appetite for new listings this year, plus early investors in these companies looking for an exit after nearly a decade of private funding.",
-    matters:"A cluster of IPOs at once tests how much capital public markets can absorb — and how these companies are being valued relative to profitability, not just growth.",
-    next:"SEBI review typically takes 4-6 weeks; watch anchor investor allocations for an early read on demand.",
-    affected:['Startup employees (ESOPs)','Early VCs','Retail IPO investors','Public market liquidity'],
-    concepts:['ipo','valuation'],
-    sources:['SEBI filings','VCCircle','Mint'],
-  },
-  {
-    id:'rupee-cad', date:'2026-09-16', category:'Economy',
-    tags:['Economy','Policy','Markets'],
-    headline:"Rupee slips as current account deficit widens",
-    dek:"India's currency touched a two-month low after trade data showed a bigger gap between imports and exports.",
-    readMins:2,
-    relevance:"Matches your interest in Economy",
-    whatHappened:"The rupee weakened to about 84.2 against the US dollar after quarterly trade data showed the current account deficit widening to 1.8% of GDP, from 1.2% the previous quarter.",
-    why:"Higher crude oil imports and softer software-services exports both contributed, while foreign investors pulled some money out of Indian debt markets.",
-    matters:"A weaker rupee makes imports — including oil — more expensive, which can feed back into inflation and complicate the RBI's rate decisions.",
-    next:"Watch crude oil prices and FII flow data over the next few weeks; a stabilising rupee would ease pressure on the RBI.",
-    affected:['Importers','Oil marketing companies','Travellers abroad','RBI policy stance'],
-    concepts:['current-account-deficit','fii-flows','gdp'],
-    sources:['RBI data','Reuters','Business Standard'],
-  },
-  {
-    id:'semiconductor-export-curbs', date:'2026-09-15', category:'Global',
-    tags:['Technology','AI','Policy'],
-    headline:"US tightens chip export rules for a second time this year",
-    dek:"New restrictions target advanced AI chips bound for a wider list of countries, reshaping global supply chains.",
-    readMins:4,
-    relevance:"Matches your interest in Global & Technology",
-    whatHappened:"The US Commerce Department expanded restrictions on exporting advanced semiconductors and chip-making equipment, adding several countries to a controlled list.",
-    why:"Washington is trying to slow other nations' access to the most advanced AI-capable chips, citing national security, while allies negotiate exemptions.",
-    matters:"Chipmakers face a smaller addressable market for their most advanced products, and countries affected are accelerating efforts to build domestic alternatives.",
-    next:"Watch for retaliatory trade measures and whether allied nations are granted carve-outs in the coming weeks.",
-    affected:['Chipmakers','Cloud & AI companies','Countries on the restricted list','Global tech supply chains'],
-    concepts:['supply-chain'],
-    sources:['US Commerce Department','Reuters','Financial Times'],
-  },
-  {
-    id:'bank-merger-depositors', date:'2026-09-14', category:'Finance',
-    tags:['Markets','Policy'],
-    headline:"Mid-sized private bank merger gets regulatory approval",
-    dek:"The RBI cleared a long-pending merger between two private lenders, creating the country's sixth-largest private bank by assets.",
-    readMins:3,
-    relevance:"Matches your interest in Finance",
-    whatHappened:"The RBI approved the merger of two mid-sized private banks after 18 months of review, creating a combined entity with over ₹4 lakh crore in assets.",
-    why:"Both banks had struggled independently with thin margins; regulators favoured consolidation over a weaker standalone entity that might need bailout support later.",
-    matters:"Existing depositors and borrowers will see account and loan terms migrate to the merged entity, typically with limited disruption but some branch consolidation.",
-    next:"Customers should watch for official communication on account number changes and branch closures over the next two quarters.",
-    affected:['Depositors','Borrowers','Bank employees','Shareholders of both banks'],
-    concepts:['nbfc','nim'],
-    sources:['RBI order','Livemint','Business Standard'],
-  },
-  {
-    id:'inflation-print', date:'2026-09-13', category:'Economy',
-    tags:['Economy','Policy'],
-    headline:"Retail inflation eases to 18-month low",
-    dek:"Falling vegetable and fuel prices pulled headline inflation down to 3.4% year-on-year in August.",
-    readMins:2,
-    relevance:"Matches your interest in Economy",
-    whatHappened:"India's Consumer Price Index rose 3.4% year-on-year in August, down from 4.1% in July, driven largely by a sharp fall in vegetable prices.",
-    why:"A good monsoon boosted agricultural supply, while global crude prices stayed soft, easing fuel-linked cost pressures across the economy.",
-    matters:"This is the main data point the RBI watches when deciding whether it has room to cut interest rates further without risking a price spiral.",
-    next:"The next CPI print in a month will show whether this is a durable trend or a seasonal dip tied to the harvest.",
-    affected:['Consumers','RBI policy committee','Fixed-income investors'],
-    concepts:['inflation','yoy'],
-    relatedConceptSeen:'repo-rate',
-    sources:['Ministry of Statistics','Reuters','Mint'],
-  },
-];
+/* STORY_BANK now lives in stories.js, shared with api/ask.js so the server looks stories up by id. */
+
 
 /* ============================================================
-   AI LAYER — tries the real /api/ask serverless function first
-   (real Claude, grounded in this story's fields); if that route
-   isn't configured yet (no ANTHROPIC_API_KEY) or fails for any
-   reason, falls back to the local template answers below so the
-   feature never breaks — before a key is set, mid-outage, or offline.
+   AI LAYER — signed-in users call the /api/ask serverless function
+   (answers grounded in the server's copy of the story, daily cap);
+   guests never call it. If the route isn't configured yet, hits the
+   daily cap or fails for any reason, the local template answers
+   below are shown, always labelled "Offline answer, not from the AI".
    ============================================================ */
 async function askAI(story, question){
+  /* Returns { text, offline, note }.
+     offline=true means the answer came from the built-in templates, NOT the AI, and the UI labels it.
+     Guests never call /api/ask: the endpoint requires a signed-in user and enforces a daily cap. */
+  const offline = (note, needSignIn) => ({ text: askAIFallback(story, question), offline:true, note: note || '', needSignIn: !!needSignIn });
+  if(!signedIn()) return offline('', true);
+  let token = null;
+  try{ const sess = await SimplifyAuth.getSession(); token = sess && sess.access_token; }catch(e){}
+  if(!token) return offline('Your session expired.', true);
   try{
     const res = await fetch('/api/ask', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ story, question }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ storyId: story.id, question }),
     });
-    if(!res.ok) throw new Error('ask endpoint unavailable');
-    const data = await res.json();
-    if(!data.text) throw new Error('empty response');
-    return data.text;
+    let data = {};
+    try{ data = await res.json(); }catch(e){}
+    if(res.status === 429) return offline(data.message || 'Daily question limit reached.');
+    if(res.status === 401) return offline('Your session expired.', true);
+    if(res.status === 503 && data.error === 'not_configured') return offline('The AI tutor is not switched on yet in this beta.');
+    if(!res.ok || !data.text) return offline('The AI tutor is unavailable right now.');
+    return { text: data.text, offline:false, note:'' };
   }catch(err){
-    return askAIFallback(story, question);
+    return offline('The AI tutor is unavailable right now.');
   }
 }
 
@@ -884,7 +786,6 @@ function defaultState(){
     interests: ['Markets','Policy','Economy'],
     readingTime: '10 min',
     depth: 'Some knowledge',
-    deliveryTime: '7:00 AM',
     storiesRead: {},         // id -> { readAt, timeSpentSec }
     storiesSaved: {},        // id -> true
     quizResults: {},         // not surfaced as a quiz UI in v1; reserved for future
@@ -894,6 +795,9 @@ function defaultState(){
     streak: 1,
     lastActiveDate: null,
     searches: [],
+    removedRead: {},         // storyId -> ISO time it was un-marked (tombstone so sync can't resurrect it)
+    removedSaved: {},        // storyId -> ISO time it was un-saved
+    askAwards: {},           // IST date -> number of AI answers that earned points that day
     createdAt: new Date().toISOString(),
   };
 }
@@ -905,7 +809,13 @@ function load(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return defaultState();
     const parsed = JSON.parse(raw);
-    return Object.assign(defaultState(), parsed);
+    const st = Object.assign(defaultState(), parsed);
+    if(!parsed.askAwards){   // older save: keep earlier AI-question points (capped), then derive points
+      const n = Object.values(st.askHistory||{}).reduce((t,a)=>t+(Array.isArray(a)?a.length:0),0);
+      st.askAwards = n ? { legacy: Math.min(n, 20) } : {};
+    }
+    st.points = computePoints(st);
+    return st;
   }catch(e){
     return defaultState();
   }
@@ -947,18 +857,39 @@ function applyOnboardingHandoff(){
   }
 }
 
-/* ---------- Streak logic: bump once per new calendar day active ---------- */
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+/* ---------- Dates are India days (IST, UTC+5:30, no daylight saving) ---------- */
+function todayStr(){ return new Date(Date.now() + 19800000).toISOString().slice(0,10); }
+function dayDiff(a, b){ return Math.round((Date.parse(b+'T00:00:00Z') - Date.parse(a+'T00:00:00Z')) / 86400000); }
+
+/* ---------- Streak: counts a day when you open or understand a story ---------- */
 function touchStreak(){
   const today = todayStr();
   if(state.lastActiveDate === today) return;
   if(state.lastActiveDate){
-    const prev = new Date(state.lastActiveDate);
-    const diffDays = Math.round((new Date(today) - prev) / 86400000);
-    state.streak = diffDays === 1 ? state.streak + 1 : 1;
+    state.streak = dayDiff(state.lastActiveDate, today) === 1 ? state.streak + 1 : 1;
+  } else {
+    state.streak = 1;
   }
   state.lastActiveDate = today;
   save();
+}
+// What to show: a streak that wasn't continued yesterday or today has lapsed.
+function currentStreak(){
+  if(!state.lastActiveDate) return 0;
+  return dayDiff(state.lastActiveDate, todayStr()) <= 1 ? state.streak : 0;
+}
+
+/* ---------- Points are DERIVED from what you did, so sync and un-marking can never inflate them ---------- */
+const ASK_AWARDS_PER_DAY = 3;
+function computePoints(st){
+  const asks = Object.values(st.askAwards || {}).reduce((t,n)=>t+(+n||0),0);
+  return 10*Object.keys(st.storiesRead||{}).length + 3*Object.keys(st.conceptsLearned||{}).length + 2*asks;
+}
+function awardAskPoints(){
+  const d = todayStr();
+  const n = state.askAwards[d] || 0;
+  if(n < ASK_AWARDS_PER_DAY){ state.askAwards[d] = n + 1; }
+  state.points = computePoints(state);
 }
 
 /* ============================================================
@@ -977,12 +908,13 @@ function showToast(msg){
    RENDER: TOPBAR + SIDEBAR
    ============================================================ */
 function renderChrome(){
-  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  document.getElementById('topbar-date').textContent = topbarLabel();
   const nm = (state.profile.email && state.profile.email !== 'Guest') ? state.profile.email.split('@')[0] : 'Guest';
   document.getElementById('sidebar-name').textContent = nm;
   document.getElementById('sidebar-avatar').textContent = nm.charAt(0).toUpperCase();
-  document.getElementById('sidebar-streak').textContent = `Day ${state.streak} streak`;
-  document.getElementById('streak-count').textContent = state.streak;
+  const cs = currentStreak();
+  document.getElementById('sidebar-streak').textContent = cs ? `Day ${cs} streak` : 'No streak yet';
+  document.getElementById('streak-count').textContent = cs;
   document.getElementById('points-count').textContent = state.points;
   document.getElementById('profile-email').textContent = state.profile.email;
   renderAccount();
@@ -1070,19 +1002,19 @@ function storyCardHTML(s){
     <div class="story ${isRead?'read':''}" onclick="openStory('${s.id}')">
       <div class="story-top-row">
         <div class="story-tag-row">
-          <span class="story-tag">${s.category}</span>
+          <span class="story-tag">${esc(s.category)}</span>
           <span class="story-readtime">${s.readMins} min</span>
         </div>
         ${isRead ? `<span class="story-check"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Understood</span>` : ''}
       </div>
-      <div class="story-headline">${s.headline}</div>
-      <div class="story-dek">${s.dek}</div>
+      <div class="story-headline">${esc(s.headline)}</div>
+      <div class="story-dek">${esc(s.dek)}</div>
       <div class="story-relevance">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>
-        ${relevanceText}
+        ${esc(relevanceText)}
       </div>
       <div class="story-concepts-row">
-        ${s.concepts.map(k => `<span class="concept-chip ${state.conceptsLearned[k]?'known':''}">${CONCEPT_LIBRARY[k].term}</span>`).join('')}
+        ${s.concepts.map(k => `<span class="concept-chip ${state.conceptsLearned[k]?'known':''}">${esc(CONCEPT_LIBRARY[k].term)}</span>`).join('')}
       </div>
       <div class="story-actions">
         <span class="story-open-cta">${isRead ? 'Read again' : 'Understand this'} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
@@ -1094,8 +1026,9 @@ function storyCardHTML(s){
 }
 
 function toggleSave(id){
-  if(state.storiesSaved[id]) delete state.storiesSaved[id];
-  else state.storiesSaved[id] = true;
+  const now = new Date().toISOString();
+  if(state.storiesSaved[id]){ delete state.storiesSaved[id]; state.removedSaved[id] = now; }
+  else state.storiesSaved[id] = now;
   save();
   renderToday(); renderExplore(); renderSaved();
   showToast(state.storiesSaved[id] ? 'Saved' : 'Removed from saved');
@@ -1108,7 +1041,7 @@ let currentStoryId = null;
 
 function findStory(id){ return STORY_BANK.find(s=>s.id===id); }
 
-function openStory(id){
+function openStory(id, refresh){
   currentStoryId = id;
   const s = findStory(id);
   const isSaved = !!state.storiesSaved[id];
@@ -1134,8 +1067,8 @@ function openStory(id){
       </button>
     </div>
     <div class="sd-body">
-      <span class="sd-tag">${s.category}</span>
-      <div class="sd-headline">${s.headline}</div>
+      <span class="sd-tag">${esc(s.category)}</span>
+      <div class="sd-headline">${esc(s.headline)}</div>
       <div class="sd-meta">
         <span>${s.readMins} min read</span>
         <span>·</span>
@@ -1146,33 +1079,34 @@ function openStory(id){
 
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>What happened</div>
-        <div class="sd-section-text">${s.whatHappened}</div>
+        <div class="sd-section-text">${esc(s.whatHappened)}</div>
       </div>
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Why it happened</div>
-        <div class="sd-section-text">${s.why}</div>
+        <div class="sd-section-text">${esc(s.why)}</div>
       </div>
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Why it matters</div>
-        <div class="sd-section-text">${s.matters}</div>
+        <div class="sd-section-text">${esc(s.matters)}</div>
       </div>
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 010 7.75"/></svg>Who's affected</div>
-        <div class="sd-affected-grid">${s.affected.map(a=>`<span class="sd-affected-pill">${a}</span>`).join('')}</div>
+        <div class="sd-affected-grid">${s.affected.map(a=>`<span class="sd-affected-pill">${esc(a)}</span>`).join('')}</div>
       </div>
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>What happens next</div>
-        <div class="sd-section-text">${s.next}</div>
+        <div class="sd-section-text">${esc(s.next)}</div>
       </div>
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg>Key concepts</div>
         <div class="sd-concepts-list">
-          ${s.concepts.map(k=>`<div class="sd-concept-item"><span class="sd-concept-term">${CONCEPT_LIBRARY[k].term}</span><span class="sd-concept-def">— ${CONCEPT_LIBRARY[k].def}</span></div>`).join('')}
+          ${s.concepts.map(k=>`<div class="sd-concept-item"><span class="sd-concept-term">${esc(CONCEPT_LIBRARY[k].term)}</span><span class="sd-concept-def">— ${esc(CONCEPT_LIBRARY[k].def)}</span></div>`).join('')}
         </div>
       </div>
       <div class="sd-section">
         <div class="sd-section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Sources</div>
-        <div class="sd-sources"><span class="sd-source-pill">Sample story · illustrative</span><span class="sd-source-pill">Real sources appear once a live news feed is connected</span></div>
+        <div class="sd-sources">${sourcesHTML(s)}</div>
+        <div class="ai-note">AI explanations can be wrong. Check the original source. For education, not investment advice.</div>
       </div>
 
       <div class="ask-box">
@@ -1181,9 +1115,10 @@ function openStory(id){
           Ask simplify about this story
         </div>
         <div class="ask-suggestions">
-          ${SUGGESTED_QUESTIONS.map(q=>`<span class="ask-chip" onclick="submitAsk('${id}', ${JSON.stringify(q)})">${q}</span>`).join('')}
+          ${SUGGESTED_QUESTIONS.map(q=>`<span class="ask-chip" data-q="${escapeHTML(q)}" onclick="submitAsk('${id}', this.dataset.q)">${escapeHTML(q)}</span>`).join('')}
         </div>
         <div class="ask-thread" id="ask-thread">${threadHTML(thread)}</div>
+        <div class="ai-note" style="margin-top:6px">AI explanations can be wrong. Check the original source. For education, not investment advice. ${signedIn() ? '' : '<a href="signin.html?mode=signup">Sign in to ask simplify</a>'}</div>
         <div class="ask-input-row" style="margin-top:12px;">
           <input class="ask-input" id="ask-input" type="text" placeholder="Ask anything about this story…" onkeydown="if(event.key==='Enter'){submitAsk('${id}', this.value); this.value='';}">
           <button class="ask-send" onclick="const i=document.getElementById('ask-input'); submitAsk('${id}', i.value); i.value='';">
@@ -1206,19 +1141,44 @@ function openStory(id){
   `;
   document.getElementById('story-overlay').classList.add('active');
 
-  // Opening & reading a story is itself a small comprehension signal.
-  markOpened(id);
+  if(!refresh) markOpened(id);   // a refresh after toggling "understood" is not a new open
 }
 
 function threadHTML(thread){
   return thread.map(t => `
     <div class="ask-qa">
       <div class="ask-q">${escapeHTML(t.q)}</div>
-      <div class="ask-a">${escapeHTML(t.a)}</div>
+      <div class="ask-a">${escapeHTML(t.a)}${t.offline ? offlineTagHTML(t.note, t.needSignIn) : ''}</div>
     </div>`).join('');
 }
+function offlineTagHTML(note, needSignIn){
+  const link = needSignIn ? '<a href="signin.html?mode=signup">Sign in to ask simplify</a>' : '';
+  return `<div class="ask-offline"><strong>Offline answer, not from the AI.</strong> ${note ? escapeHTML(note) + ' ' : ''}${link}</div>`;
+}
 function escapeHTML(str){
-  const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
+  return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const esc = escapeHTML;
+// Only ever link out to real http(s) URLs.
+function safeUrl(u){ try{ const x = new URL(u); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : ''; }catch(e){ return ''; } }
+function track(name, props){ try{ if(window.SimplifyTrack) SimplifyTrack.event(name, props); }catch(e){} }
+
+/* Stories are mock samples until a feed supplies `url` + `source`. Everything the UI says about
+   dates and sources is driven by these fields, so it corrects itself when real stories arrive. */
+function isSampleStory(s){ return !s.url; }
+function topbarLabel(){
+  const ds = getTodaysStories();
+  if(ds.length && ds.every(isSampleStory)) return 'Sample stories · not live news';
+  const newest = ds.map(s => s.publishedAt || s.date).sort().pop();
+  return newest ? 'Latest story · ' + new Date(newest.slice(0,10)+'T00:00:00').toLocaleDateString('en-US',{ month:'short', day:'numeric' }) : '';
+}
+function sourcesHTML(s){
+  const link = safeUrl(s.url);
+  if(link){
+    const name = esc(s.source || new URL(link).hostname);
+    return `<span class="sd-source-pill">${name}</span><a class="sd-source-pill sd-source-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Read original ↗</a>`;
+  }
+  return `<span class="sd-source-pill">Sample story · illustrative</span><span class="sd-source-pill">Real sources appear once a live news feed is connected</span>`;
 }
 
 async function submitAsk(storyId, question){
@@ -1232,44 +1192,47 @@ async function submitAsk(storyId, question){
   const thinkingEl = thinkingEls[thinkingEls.length-1];
   thread.scrollTop = thread.scrollHeight;
 
-  const answer = await askAI(s, question);
-  thinkingEl.textContent = answer;
+  const r = await askAI(s, question);
+  track('ask_sent', { story: storyId, ai: !r.offline });
+  if(r.offline) track('ask_blocked', { reason: r.needSignIn ? 'sign_in' : 'limit_or_down' });
+  thinkingEl.textContent = r.text;
+  if(r.offline) thinkingEl.insertAdjacentHTML('beforeend', offlineTagHTML(r.note, r.needSignIn));
   thinkingEl.classList.remove('thinking');
-  state.askHistory[storyId].push({ q: question, a: answer });
-  state.points += 2; // asking questions is rewarded — curiosity, not just consumption
+  state.askHistory[storyId].push({ q: question, a: r.text, offline: !!r.offline, note: r.note || '', needSignIn: !!r.needSignIn });
+  if(!r.offline) awardAskPoints();   // only real AI answers earn points, so offline answers can't be farmed
   save();
   renderChrome();
 }
 
 function markOpened(id){
+  // Opening a story counts the day for your streak. Only "Mark as understood" earns points.
   touchStreak();
-  if(!state.storiesRead[id]){
-    // opening doesn't count as "understood" — only explicit mark-as-understood does.
-  }
-  save();
+  track('story_open', { story: id });
 }
 
 function toggleUnderstood(id){
   const s = findStory(id);
   const wasRead = !!state.storiesRead[id];
+  const now = new Date().toISOString();
   if(wasRead){
     delete state.storiesRead[id];
-    state.points = Math.max(0, state.points - 10);
+    state.removedRead[id] = now;
   } else {
-    state.storiesRead[id] = { readAt: new Date().toISOString() };
-    state.points += 10;
+    state.storiesRead[id] = { readAt: now };
     s.concepts.forEach(k=>{
       if(!state.conceptsLearned[k]){
-        state.conceptsLearned[k] = { firstSeenStoryId: id, firstSeenDate: s.date };
-        state.points += 3;
+        state.conceptsLearned[k] = { firstSeenStoryId: id, firstSeenDate: todayStr() };
       }
     });
-    showToast('Marked as understood · +10 pts');
+    touchStreak();
+    track('story_understood', { story: id });
   }
+  state.points = computePoints(state);
+  if(!wasRead) showToast('Marked as understood · +10 pts');
   save();
   renderChrome();
   renderToday();
-  openStory(id); // refresh panel state (button + connection banner)
+  openStory(id, true); // refresh panel state (button + connection banner)
 }
 
 function closeStory(){
@@ -1341,7 +1304,7 @@ function renderArchive(){
     return `
       <div class="archive-item" onclick="openArchiveDay('${d}')">
         <div class="archive-date">${label}</div>
-        <div class="archive-summary">${stories.map(s=>s.headline).join(' · ')}</div>
+        <div class="archive-summary">${esc(stories.map(s=>s.headline).join(' · '))}</div>
         <div class="archive-count">${readN}/${stories.length} read</div>
       </div>`;
   }).join('');
@@ -1397,7 +1360,7 @@ function renderCompounds(){
     const s = findStory(id); return sum + (s ? s.readMins : 0);
   }, 0);
 
-  document.getElementById('compound-streak-num').textContent = state.streak;
+  document.getElementById('compound-streak-num').textContent = currentStreak();
   document.getElementById('stat-briefs').textContent = briefsRead;
   document.getElementById('stat-concepts').textContent = conceptsN;
   document.getElementById('stat-time').textContent = `${minsInvested} min`;
@@ -1431,9 +1394,9 @@ function renderCompounds(){
     const info = state.conceptsLearned[k];
     const learnedDate = new Date(info.firstSeenDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
     return `
-      <div class="concept-card" onclick="openStory('${info.firstSeenStoryId}')" style="cursor:pointer;">
-        <div class="term">${c.term}</div>
-        <div class="def">${c.def}</div>
+      <div class="concept-card" onclick="openStory('${String(info.firstSeenStoryId).replace(/[^A-Za-z0-9_-]/g,'')}')" style="cursor:pointer;">
+        <div class="term">${esc(c.term)}</div>
+        <div class="def">${esc(c.def)}</div>
         <div class="meta"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>Learned ${learnedDate}</div>
       </div>`;
   }).join('');
@@ -1458,9 +1421,6 @@ function renderSettings(){
   document.getElementById('interests-toggle').innerHTML = INTEREST_OPTIONS.map(c=>
     `<span class="pill ${state.interests.includes(c)?'active':''}" onclick="toggleInterest('${c}')">${c}</span>`).join('');
 
-  const times2 = ['7:00 AM','8:00 AM','9:00 AM'];
-  document.getElementById('delivery-toggle').innerHTML = times2.map(t=>
-    `<button class="${state.deliveryTime===t?'active':''}" onclick="setDelivery('${t}')">${t}</button>`).join('');
 }
 function authOn(){ return !!(window.SimplifyAuth && SimplifyAuth.enabled); }
 function signedIn(){ return authOn() && !!SimplifyAuth.uid(); }
@@ -1496,7 +1456,21 @@ function toggleInterest(c){
   else state.interests.push(c);
   save(); renderSettings(); renderToday(); showToast('Interests updated');
 }
-function setDelivery(t){ state.deliveryTime = t; save(); renderSettings(); showToast('Preference saved'); }
+
+function openFeedback(){
+  switchView('settings', document.querySelector('.nav-item[data-view="settings"]'));
+  setTimeout(()=>{ const t = document.getElementById('fb-message'); if(t){ t.scrollIntoView({block:'center'}); t.focus(); } }, 50);
+}
+async function sendFeedback(){
+  const msgEl = document.getElementById('fb-message'), st = document.getElementById('fb-status'), btn = document.getElementById('fb-send');
+  const message = msgEl.value.trim();
+  if(!message){ st.textContent = 'Write a message first.'; return; }
+  btn.disabled = true; st.textContent = 'Sending…';
+  const ok = window.SimplifyTrack ? await SimplifyTrack.feedback(message, document.getElementById('fb-contact').value.trim(), 'app') : false;
+  btn.disabled = false;
+  if(ok){ msgEl.value = ''; document.getElementById('fb-contact').value = ''; st.textContent = 'Thank you, this really helps.'; }
+  else { st.textContent = 'Could not send right now. Please try again later.'; }
+}
 
 async function resetAllData(){
   const cloud = signedIn();
@@ -1517,7 +1491,6 @@ function initApp(){
   applyOnboardingHandoff();
   // New visitors always start at the landing -> onboarding flow.
   if(!state.onboarded){ window.location.replace('start.html'); return; }
-  touchStreak();
   renderChrome();
   renderToday();
   renderExplore();

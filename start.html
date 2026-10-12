@@ -138,8 +138,10 @@ h1{font-family:var(--display);font-size:clamp(30px,6vw,40px);letter-spacing:-.02
 <script src="config.js"></script>
 <script src="supabase.js"></script>
 <script src="auth.js"></script>
+<script src="track.js"></script>
 <script>
 (function(){
+  try{ if(window.SimplifyTrack) SimplifyTrack.event('onboarding_start'); }catch(e){}
   var KEY='simplify_state_v1';
   var answers={role:null,interests:[],readingTime:null,depth:null};
   var cur=1, steps=[].slice.call(document.querySelectorAll('.step[data-step]'));
@@ -204,6 +206,7 @@ h1{font-family:var(--display);font-size:clamp(30px,6vw,40px);letter-spacing:-.02
   }
   function finish(){
     var ok=saveAnswers();
+    try{ if(window.SimplifyTrack){ SimplifyTrack.event('onboarding_complete', { role: answers.role, depth: answers.depth, time: answers.readingTime, interests: answers.interests.length }); SimplifyTrack.flush(); } }catch(e){}
     steps.forEach(function(s){s.classList.remove('on');});
     document.getElementById('loading').classList.add('on');
     document.getElementById('barwrap').style.visibility='hidden';
