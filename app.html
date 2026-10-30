@@ -1517,12 +1517,13 @@ function initApp(){
 // Boot: apply onboarding hand-off, pull the account (if signed in), then render.
 (async function boot(){
   applyOnboardingHandoff();
+  const livePromise = (window.SimplifyLive ? SimplifyLive.load() : Promise.resolve(0)).catch(()=>0);   // stories load while sign-in is checked
   if(authOn()){
     try{
       await Promise.race([ SimplifyAuth.hydrate(state), new Promise(res=>setTimeout(res, 4000)) ]);
     }catch(e){}
   }
-  try{ if(window.SimplifyLive) await SimplifyLive.load(); }catch(e){}
+  await livePromise;
   initApp();
 })();
 
