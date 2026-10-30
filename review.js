@@ -45,7 +45,11 @@
     });
   }
   function claim(){
-    api('rpc/claim_admin', { method: 'POST', body: '{}' }).then(function(r){ return r.ok ? r.json() : false; }).then(function(ok){
+    api('rpc/claim_admin', { method: 'POST', body: '{}' }).then(function(r){
+      if(!r.ok){ say('The database setup is missing. Run the latest schema.sql in the Supabase SQL Editor, then reload this page.', true); return null; }
+      return r.json();
+    }).then(function(ok){
+      if(ok === null) return;
       if(ok === true) checkAdmin(); else say('Someone else is already the editor, so this account cannot review stories.', true);
     });
   }

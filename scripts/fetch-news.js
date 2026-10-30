@@ -8,7 +8,10 @@
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+// Tried in order; a model that returns 404 (not available to this key) is skipped for the rest of the run.
+const MODELS = (process.env.GEMINI_MODEL ? [process.env.GEMINI_MODEL] : []).concat(['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash-lite']);
+let modelIdx = 0;
+let MODEL = MODELS[0];
 const MAX_NEW = Math.max(1, parseInt(process.env.MAX_NEW, 10) || 10);
 const PER_FEED = 4;
 const MAX_AGE_H = 48;
@@ -81,6 +84,7 @@ const PROMPT = [
   'Rules:',
   '- Facts about the event must come only from the headline and snippet. Never invent numbers, names, quotes or dates.',
   '- If the snippet does not say why it happened or what comes next, write one general-knowledge sentence starting with "General background:" instead of guessing specifics, or say the source does not say.',
+  '- Write in English even if the source is in another language.',
   '- Plain words, no jargon without a short explanation. No investment, tax or legal advice. Do not tell anyone to buy or sell.',
   '- Do not copy sentences from the snippet; paraphrase.',
   'Return ONLY JSON with these keys: headline (max 90 chars, plain), dek (one sentence, max 160 chars), category (one of: ' + CATEGORIES.join(', ') + '),',
@@ -92,12 +96,18 @@ async function draft(item, feedName) {
   const body = {
     systemInstruction: { parts: [{ text: PROMPT }] },
     contents: [{ role: 'user', parts: [{ text: 'Source: ' + feedName + '\nHeadline: ' + item.title + '\nSnippet: ' + (item.snippet || '(none)') }] }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 900, responseMimeType: 'application/json' },
+    generationConfig: { temperature: 0.3, maxOutputTokens: 3000, responseMimeType: 'application/json' },
   };
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 3 + MODELS.length; attempt++) {
+    MODEL = MODELS[modelIdx];
     const r = await timed('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(MODEL) + ':generateContent', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY }, body: JSON.stringify(body),
     }, 30000);
+    if (r.status === 404 || r.status === 400 && modelIdx < MODELS.length - 1) {
+      console.log('model not usable:', MODEL, 'HTTP', r.status);
+      if (modelIdx < MODELS.length - 1) { modelIdx++; continue; }
+      throw new Error('no Gemini model available (' + r.status + ')');
+    }
     if (r.status === 429 || r.status >= 500) { await sleep(20000 * (attempt + 1)); continue; }
     if (!r.ok) throw new Error('gemini ' + r.status);
     const d = await r.json();

@@ -31,7 +31,7 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_bEb1S
 const MAX_QUESTION = 500;
 const MAX_CONTEXT = 4000;
 const MAX_BODY_BYTES = 20000;
-const MAX_OUTPUT_TOKENS = 400;
+const MAX_OUTPUT_TOKENS = 1200;   // headroom for models that spend tokens "thinking"; answers are kept short by the prompt
 const IST_MS = 19800000;
 
 function dailyCap() { return Math.max(1, parseInt(process.env.ASK_DAILY_CAP, 10) || 10); }
@@ -166,20 +166,27 @@ function llmConfig() {
 async function callModel(cfg, context, question) {
   const userMsg = '<story>\n' + context + '\n</story>\n<question>\n' + question + '\n</question>';
   if (cfg.kind === 'gemini') {
-    const model = process.env.ASK_MODEL || 'gemini-2.5-flash-lite';
-    const r = await timedFetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cfg.key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: 'user', parts: [{ text: userMsg }] }],
-        generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS, temperature: 0.3 },
-      }),
-    }, 20000);
-    if (!r.ok) throw new Error('gemini ' + r.status);
-    const d = await r.json();
-    const parts = d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts;
-    return parts ? parts.map(p => p.text || '').join('').trim() : '';
+    // Try the configured model first, then current free-tier models; a 404 means this key cannot use that model.
+    const models = (process.env.ASK_MODEL ? [process.env.ASK_MODEL] : []).concat(['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash-lite']);
+    let lastStatus = 0;
+    for (const model of models) {
+      const r = await timedFetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cfg.key },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: 'user', parts: [{ text: userMsg }] }],
+          generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS, temperature: 0.3 },
+        }),
+      }, 20000);
+      lastStatus = r.status;
+      if (r.status === 404) continue;
+      if (!r.ok) throw new Error('gemini ' + r.status);
+      const d = await r.json();
+      const parts = d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts;
+      return parts ? parts.map(p => p.text || '').join('').trim() : '';
+    }
+    throw new Error('gemini ' + lastStatus);
   }
   const model = process.env.ASK_MODEL || 'claude-haiku-5-5';
   const r = await timedFetch('https://api.anthropic.com/v1/messages', {
