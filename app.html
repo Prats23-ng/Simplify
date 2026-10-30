@@ -666,6 +666,7 @@
 <script src="auth.js"></script>
 <script src="track.js"></script>
 <script src="stories.js"></script>
+<script src="live.js"></script>
 <script src="markets-sample.js"></script>
 <script src="markets.js"></script>
 <script>
@@ -1188,7 +1189,8 @@ function sourcesHTML(s){
   const link = safeUrl(s.url);
   if(link){
     const name = esc(s.source || new URL(link).hostname);
-    return `<span class="sd-source-pill">${name}</span><a class="sd-source-pill sd-source-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Read original ↗</a>`;
+    const rev = s.reviewed ? '<span class="sd-source-pill">✓ AI-drafted, human-reviewed</span>' : '';
+    return `<span class="sd-source-pill">${name}</span>${rev}<a class="sd-source-pill sd-source-link" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Read original ↗</a>`;
   }
   return `<span class="sd-source-pill">Sample story · illustrative</span><span class="sd-source-pill">Real sources appear once a live news feed is connected</span>`;
 }
@@ -1520,6 +1522,7 @@ function initApp(){
       await Promise.race([ SimplifyAuth.hydrate(state), new Promise(res=>setTimeout(res, 4000)) ]);
     }catch(e){}
   }
+  try{ if(window.SimplifyLive) await SimplifyLive.load(); }catch(e){}
   initApp();
 })();
 

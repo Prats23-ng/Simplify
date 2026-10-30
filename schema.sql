@@ -132,3 +132,80 @@ drop policy if exists "feedback_insert_any" on public.feedback;
 create policy "feedback_insert_any" on public.feedback
   for insert to anon, authenticated
   with check (user_id is null or user_id = (select auth.uid()));
+
+
+-- ============================================================
+-- Added: human-reviewed live stories. A daily job drafts stories (status 'draft');
+-- only an admin can approve them in /review; the app shows only 'approved'.
+-- ============================================================
+
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+alter table public.admins enable row level security;
+drop policy if exists "admins_select_own" on public.admins;
+create policy "admins_select_own" on public.admins
+  for select to authenticated using ((select auth.uid()) = user_id);
+
+-- First signed-in caller becomes the admin (used once from the /review page). Later calls only report status.
+create or replace function public.claim_admin()
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then return false; end if;
+  if exists (select 1 from public.admins) then
+    return exists (select 1 from public.admins where user_id = auth.uid());
+  end if;
+  insert into public.admins (user_id) values (auth.uid());
+  return true;
+end;
+$$;
+revoke all on function public.claim_admin() from public, anon;
+grant execute on function public.claim_admin() to authenticated;
+
+create table if not exists public.stories_live (
+  id            text primary key check (id ~ '^[A-Za-z0-9_-]{1,80}$'),
+  status        text not null default 'draft' check (status in ('draft','approved','rejected')),
+  date          date not null,
+  category      text not null check (char_length(category) <= 40),
+  tags          text[] not null default '{}',
+  headline      text not null check (char_length(headline) between 1 and 300),
+  dek           text not null default '' check (char_length(dek) <= 600),
+  read_mins     int  not null default 3 check (read_mins between 1 and 15),
+  relevance     text not null default '' check (char_length(relevance) <= 200),
+  what_happened text not null default '' check (char_length(what_happened) <= 1200),
+  why           text not null default '' check (char_length(why) <= 1200),
+  matters       text not null default '' check (char_length(matters) <= 1200),
+  next_text     text not null default '' check (char_length(next_text) <= 1000),
+  affected      text[] not null default '{}',
+  concepts      text[] not null default '{}',
+  source_name   text not null default '' check (char_length(source_name) <= 80),
+  source_url    text not null unique check (source_url ~ '^https?://'),
+  published_at  timestamptz,
+  raw_title     text,
+  ai_model      text,
+  reviewed_by   uuid references auth.users(id) on delete set null,
+  reviewed_at   timestamptz,
+  created_at    timestamptz not null default now()
+);
+create index if not exists stories_live_status_date on public.stories_live (status, date desc);
+alter table public.stories_live enable row level security;
+drop policy if exists "stories_live_read_approved" on public.stories_live;
+drop policy if exists "stories_live_admin_select" on public.stories_live;
+drop policy if exists "stories_live_admin_update" on public.stories_live;
+drop policy if exists "stories_live_admin_delete" on public.stories_live;
+create policy "stories_live_read_approved" on public.stories_live
+  for select to anon, authenticated using (status = 'approved');
+create policy "stories_live_admin_select" on public.stories_live
+  for select to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+create policy "stories_live_admin_update" on public.stories_live
+  for update to authenticated
+  using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())))
+  with check (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+create policy "stories_live_admin_delete" on public.stories_live
+  for delete to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+-- Inserts come only from the daily job using the service key (which bypasses RLS). No public insert policy.

@@ -1,0 +1,21 @@
+name: Draft daily stories
+on:
+  schedule:
+    - cron: '30 0 * * *'     # 06:00 India time, every day
+  workflow_dispatch: {}      # lets you run it by hand from the Actions tab
+permissions:
+  contents: read
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/fetch-news.js
+        env:
+          SUPABASE_URL: https://ixoofiufxonbqqpcnosk.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

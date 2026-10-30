@@ -68,6 +68,21 @@ function clip(v, n) { return String(v == null ? '' : v).slice(0, n); }
 const BY_ID = {};
 (Array.isArray(STORIES) ? STORIES : []).forEach(s => { if (s && s.id) BY_ID[String(s.id)] = s; });
 
+// Live stories (approved by the editor) are read from Supabase by id; the browser still cannot send its own text.
+async function fetchLiveStory(id) {
+  try {
+    const r = await timedFetch(SUPABASE_URL + '/rest/v1/stories_live?select=*&status=eq.approved&id=eq.' + encodeURIComponent(id), {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY },
+    }, 6000);
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const x = rows && rows[0];
+    if (!x) return null;
+    return { id: x.id, headline: x.headline, category: x.category, dek: x.dek, whatHappened: x.what_happened,
+      why: x.why, matters: x.matters, next: x.next_text, affected: x.affected, concepts: x.concepts };
+  } catch (e) { return null; }
+}
+
 function buildContext(story) {
   if (!story || typeof story !== 'object') return '';
   const parts = [];
@@ -199,7 +214,9 @@ async function handler(req, res) {
   if (question.length > MAX_QUESTION) return json(res, 413, { error: 'too_large', message: 'Please keep questions under ' + MAX_QUESTION + ' characters.' });
 
   const storyId = typeof body.storyId === 'string' ? body.storyId : '';
-  const story = /^[A-Za-z0-9_-]{1,80}$/.test(storyId) ? BY_ID[storyId] : null;
+  const idOk = /^[A-Za-z0-9_-]{1,80}$/.test(storyId);
+  let story = idOk ? BY_ID[storyId] : null;
+  if (!story && idOk) story = await fetchLiveStory(storyId);
   const context = buildContext(story);
   if (!context) return json(res, 400, { error: 'no_story', message: 'No story to ask about.' });
 
