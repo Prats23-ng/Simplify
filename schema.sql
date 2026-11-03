@@ -209,3 +209,77 @@ create policy "stories_live_admin_update" on public.stories_live
 create policy "stories_live_admin_delete" on public.stories_live
   for delete to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
 -- Inserts come only from the daily job using the service key (which bypasses RLS). No public insert policy.
+
+
+-- ============================================================
+-- Added: The Weekly (editorials with infographics). A weekly job drafts one; only the editor can approve it.
+-- ============================================================
+create table if not exists public.editorials (
+  id           text primary key check (id ~ '^[A-Za-z0-9_-]{1,80}$'),
+  status       text not null default 'draft' check (status in ('draft','approved','rejected')),
+  week_start   date not null,
+  kicker       text not null default 'The Weekly' check (char_length(kicker) <= 60),
+  title        text not null check (char_length(title) between 1 and 160),
+  standfirst   text not null default '' check (char_length(standfirst) <= 400),
+  read_mins    int  not null default 5 check (read_mins between 1 and 30),
+  body         jsonb not null default '[]'::jsonb check (pg_column_size(body) < 60000),
+  sources      jsonb not null default '[]'::jsonb check (pg_column_size(sources) < 6000),
+  warnings     jsonb not null default '[]'::jsonb check (pg_column_size(warnings) < 6000),
+  ai_model     text,
+  reviewed_by  uuid references auth.users(id) on delete set null,
+  reviewed_at  timestamptz,
+  created_at   timestamptz not null default now()
+);
+create index if not exists editorials_status_week on public.editorials (status, week_start desc);
+alter table public.editorials enable row level security;
+drop policy if exists "editorials_read_approved" on public.editorials;
+drop policy if exists "editorials_admin_select" on public.editorials;
+drop policy if exists "editorials_admin_update" on public.editorials;
+drop policy if exists "editorials_admin_delete" on public.editorials;
+create policy "editorials_read_approved" on public.editorials
+  for select to anon, authenticated using (status = 'approved');
+create policy "editorials_admin_select" on public.editorials
+  for select to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+create policy "editorials_admin_update" on public.editorials
+  for update to authenticated
+  using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())))
+  with check (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+create policy "editorials_admin_delete" on public.editorials
+  for delete to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+-- Inserts come only from the weekly job using the service key.
+
+
+-- ============================================================
+-- Added: "Why did the market move today?" notes, and Hindi versions of stories.
+-- ============================================================
+alter table public.stories_live add column if not exists hi jsonb;
+
+create table if not exists public.market_notes (
+  id          text primary key check (id ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'),
+  status      text not null default 'draft' check (status in ('draft','approved','rejected')),
+  note_date   date not null,
+  summary     text not null check (char_length(summary) between 1 and 900),
+  snapshot    jsonb not null default '[]'::jsonb check (pg_column_size(snapshot) < 4000),
+  drivers     jsonb not null default '[]'::jsonb check (pg_column_size(drivers) < 4000),
+  warnings    jsonb not null default '[]'::jsonb check (pg_column_size(warnings) < 4000),
+  ai_model    text,
+  reviewed_by uuid references auth.users(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at  timestamptz not null default now()
+);
+alter table public.market_notes enable row level security;
+drop policy if exists "market_notes_read_approved" on public.market_notes;
+drop policy if exists "market_notes_admin_select" on public.market_notes;
+drop policy if exists "market_notes_admin_update" on public.market_notes;
+drop policy if exists "market_notes_admin_delete" on public.market_notes;
+create policy "market_notes_read_approved" on public.market_notes
+  for select to anon, authenticated using (status = 'approved');
+create policy "market_notes_admin_select" on public.market_notes
+  for select to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+create policy "market_notes_admin_update" on public.market_notes
+  for update to authenticated
+  using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())))
+  with check (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+create policy "market_notes_admin_delete" on public.market_notes
+  for delete to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+-- Inserts come only from the daily market-note job using the service key.

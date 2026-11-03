@@ -10,7 +10,8 @@
       whatHappened: r.what_happened || '', why: r.why || '', matters: r.matters || '', next: r.next_text || '',
       affected: r.affected || [], concepts: r.concepts || [],
       sources: [r.source_name].filter(Boolean), source: r.source_name || '', url: r.source_url,
-      publishedAt: r.published_at || r.date, reviewed: true
+      publishedAt: r.published_at || r.date, reviewed: true,
+      hi: (r.hi && typeof r.hi === 'object' && r.hi.headline) ? r.hi : null
     };
   }
   function load(){

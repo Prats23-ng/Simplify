@@ -121,6 +121,60 @@ async function draft(item, feedName) {
 function istDate(ts) { return new Date(ts + 19800000).toISOString().slice(0, 10); }
 function makeId(url) { return 'l' + require('crypto').createHash('sha1').update(url).digest('hex').slice(0, 12); }
 
+
+const HI_PROMPT = [
+  'Translate the given English news explainer into simple, natural Hindi (Devanagari) for readers who are new to finance.',
+  'Rules: keep every fact and number exactly as in the English (write numbers with digits 0-9, keep % and currency symbols). Do not add, remove or soften any fact.',
+  'Keep common finance terms people actually say in English in Roman letters (for example repo rate, RBI, SEBI, Nifty, Sensex, GDP, IPO, FII). Short, clear sentences.',
+  'Return ONLY JSON with keys: headline, dek, whatHappened, why, matters, next (same meaning as the English fields).',
+].join('\n');
+const nums = t => (String(t).replace(/,/g, '').match(/\d+(?:\.\d+)?/g) || []);
+
+async function translateHi(row) {
+  const src = { headline: row.headline, dek: row.dek, whatHappened: row.what_happened, why: row.why, matters: row.matters, next: row.next_text };
+  const body = {
+    systemInstruction: { parts: [{ text: HI_PROMPT }] },
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify(src) }] }],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 3000, responseMimeType: 'application/json' },
+  };
+  for (let attempt = 0; attempt < 3 + MODELS.length; attempt++) {
+    MODEL = MODELS[modelIdx];
+    const r = await timed('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(MODEL) + ':generateContent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY }, body: JSON.stringify(body),
+    }, 40000);
+    if (r.status === 404 || r.status === 400) { if (modelIdx < MODELS.length - 1) { modelIdx++; continue; } throw new Error('no model'); }
+    if (r.status === 429 || r.status >= 500) { await sleep(20000 * (attempt + 1)); continue; }
+    if (!r.ok) throw new Error('gemini ' + r.status);
+    const d = await r.json();
+    const parts = d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts;
+    const t = JSON.parse((parts ? parts.map(p => p.text || '').join('') : '').replace(/^```json\s*|\s*```$/g, ''));
+    const hi = { headline: str(t.headline, 300), dek: str(t.dek, 600), whatHappened: str(t.whatHappened, 1500), why: str(t.why, 1500), matters: str(t.matters, 1500), next: str(t.next, 1200) };
+    if (!hi.headline || !hi.whatHappened || !hi.matters) throw new Error('incomplete translation');
+    // every number in the Hindi must exist in the English, so a translation can never introduce a new figure
+    const en = nums(Object.values(src).join(' ')).join(' ');
+    const bad = nums(Object.values(hi).join(' ')).filter(n => !(' ' + en + ' ').includes(' ' + n + ' '));
+    if (bad.length) throw new Error('number mismatch ' + bad.join(','));
+    return hi;
+  }
+  throw new Error('gemini rate limited');
+}
+
+async function backfillHindi() {
+  const r = await sb('stories_live?select=id,headline,dek,what_happened,why,matters,next_text&hi=is.null&status=in.(draft,approved)&order=date.desc&limit=12');
+  if (!r.ok) { console.log('Hindi backfill skipped (run the latest schema.sql?):', r.status); return; }
+  const rows = await r.json();
+  let ok = 0, bad = 0;
+  for (const row of rows) {
+    try {
+      const hi = await translateHi(row);
+      const u = await sb('stories_live?id=eq.' + encodeURIComponent(row.id), { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ hi }) });
+      if (u.ok) ok++; else { bad++; console.log('hindi save failed', u.status); }
+    } catch (e) { bad++; console.log('hindi failed:', row.headline.slice(0, 50), '-', e.message); }
+    await sleep(5000);
+  }
+  console.log('HINDI translated=' + ok + ' failed=' + bad);
+}
+
 (async function main() {
   if (!SUPABASE_URL || !SERVICE_KEY || !GEMINI_KEY) { console.error('Missing SUPABASE_URL, SUPABASE_SERVICE_KEY or GEMINI_API_KEY'); process.exit(1); }
 
@@ -169,5 +223,6 @@ function makeId(url) { return 'l' + require('crypto').createHash('sha1').update(
     } catch (e) { failed++; console.log('failed:', it.title.slice(0, 60), '-', e.message); }
     await sleep(5000);   // stay inside the free-tier requests-per-minute limit
   }
+  try { await backfillHindi(); } catch (e) { console.log('Hindi backfill error:', e.message); }
   console.log('DONE drafted=' + saved + ' skipped=' + skipped + ' failed=' + failed);
 })();

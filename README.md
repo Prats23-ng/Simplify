@@ -11,6 +11,8 @@ Static site on Vercel + Supabase (accounts and progress) + one serverless functi
 - `api/ask.js` AI endpoint: signed-in only, per-user daily cap, grounded in the story
 - `live.js` loads human-approved stories from Supabase; `review.html` + `review.js` private editor page (/review)
 - `scripts/fetch-news.js` + `.github/workflows/fetch-news.yml` daily job: RSS headline + snippet -> Gemini draft -> saved as a draft
+- `weekly.js` The Weekly reader and charts; `scripts/draft-weekly.js` + `.github/workflows/draft-weekly.yml` drafts it every Sunday (editor approves in `/review.html` -> The Weekly)
+- `api/markets.js`, `api/movers.js` delayed market data (Yahoo Finance, cached 5 min)
 - `schema.sql` run once in Supabase -> SQL Editor (safe to re-run)
 - `privacy.html`, `terms.html`
 
@@ -28,3 +30,10 @@ Without a key, Ask simplify shows a labelled offline answer.
 3. Open `/review` while signed in and click "Make me the editor" (first time only).
 4. Actions tab -> "Draft daily stories" -> Run workflow (it also runs daily at 06:00 IST). Approve drafts in `/review`.
 Only approved stories reach readers; each links to its original source. Edit the `FEEDS` list in `scripts/fetch-news.js` to change sources.
+
+## More features
+
+- **Why markets moved**: `scripts/draft-market-note.js` runs weekdays at 4 pm IST (`draft-market-note.yml`), drafts a short note from real index moves and approved stories, and saves it as a draft. Approve it in `/review.html` under **Market note**. Figures on the card come from market data, never from the AI.
+- **Hindi**: the daily job (`fetch-news.js`) also translates new and older stories into Hindi (`stories_live.hi`). Edit it under **Hindi version** in review. A translation is rejected if it contains a number not in the English.
+- **Learn** (`explainers.js`): hand-written evergreen explainers with diagrams. Edit the `LIST` array to add more.
+- **The Weekly** shows a clearly labelled preview until the first edition is approved.

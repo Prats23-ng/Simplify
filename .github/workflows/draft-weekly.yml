@@ -1,0 +1,27 @@
+name: Draft The Weekly
+on:
+  schedule:
+    - cron: '30 3 * * 0'      # Sunday 09:00 India time
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Draft again even if this week already has one (1 = yes)'
+        required: false
+        default: '0'
+permissions:
+  contents: read
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/draft-weekly.js
+        env:
+          SUPABASE_URL: https://ixoofiufxonbqqpcnosk.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FORCE: ${{ github.event.inputs.force == '1' && '1' || '0' }}

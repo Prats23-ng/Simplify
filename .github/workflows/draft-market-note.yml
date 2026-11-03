@@ -1,0 +1,27 @@
+name: Draft market note
+on:
+  schedule:
+    - cron: '30 10 * * 1-5'   # 16:00 India time, Mon-Fri (after the market closes)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Draft even on a weekend or if a draft exists'
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/draft-market-note.js
+        env:
+          SUPABASE_URL: https://ixoofiufxonbqqpcnosk.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FORCE: ${{ github.event.inputs.force }}
