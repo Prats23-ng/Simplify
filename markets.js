@@ -1,9 +1,8 @@
 /* markets.js — Markets strip, "Markets today" card and the full Markets view for simplify.
  *
- * STATUS: design preview. The default data source is markets-sample.js (illustrative numbers,
- * always labelled "Sample data"). To go live, change defaultFetcher() to call /api/markets (same
- * payload shape) and remove markets-sample.js. Nothing here invents numbers: if a fetch fails it
- * shows the last saved live quote with its real time, or a calm "unavailable" state.
+ * STATUS: live (delayed). Data comes from /api/markets (Yahoo Finance public data, about 15 minutes delayed).
+ * Nothing here invents numbers: if a fetch fails it shows the last saved live quote with its real time,
+ * or a calm "unavailable" state. (Top movers and market breadth are hidden until a source for them is added.)
  */
 (function () {
   'use strict';
@@ -11,15 +10,20 @@
   var REFRESH_MS = 15 * 60 * 1000;      // refresh while the tab is visible
   var STALE_MS = 35 * 60 * 1000;        // latest quote older than this = "last close"
   var LS_KEY = 'simplify_markets_last';
-  var NEUTRAL = { vix: true, usdinr: true };   // not simply good/bad when they fall
+  var NEUTRAL = { vix: true, usdinr: true, gold: true, brent: true };   // not simply good/bad when they fall
   var DESC = {
     nifty: "Average of India's 50 largest listed companies",
     sensex: 'Average of 30 large companies on the BSE',
     banknifty: "Tracks India's biggest banks",
     vix: 'Expected market swings, the fear gauge',
-    usdinr: 'Rupees needed to buy one US dollar'
+    usdinr: 'Rupees needed to buy one US dollar',
+    niftyit: "Tracks India's biggest IT companies",
+    gold: 'Gold price in US dollars per ounce',
+    brent: 'Global oil benchmark, US dollars per barrel',
+    sp500: "Average of 500 large US companies",
+    nasdaq: 'US index heavy on technology companies'
   };
-  var STRIP_IDS = ['nifty', 'banknifty', 'vix', 'usdinr'];
+  var STRIP_IDS = ['nifty', 'sensex', 'banknifty', 'niftyit', 'vix', 'usdinr', 'gold', 'brent', 'sp500', 'nasdaq'];
   var TILE_IDS = ['sensex', 'banknifty', 'vix', 'usdinr'];
 
   var state = { data: null, loading: true, failed: false, fromSaved: false, range: '1M', moverTab: 'gainers' };
@@ -29,8 +33,7 @@
 
   /* ---------- data source ---------- */
   function defaultFetcher() {
-    // LIVE: return fetch('/api/markets').then(function (r) { if (!r.ok) throw new Error('bad status'); return r.json(); });
-    return Promise.resolve(window.MARKETS_SAMPLE ? JSON.parse(JSON.stringify(window.MARKETS_SAMPLE)) : null);
+    return fetch('/api/markets').then(function (r) { if (!r.ok) throw new Error('bad status'); return r.json(); });
   }
 
   /* ---------- helpers ---------- */

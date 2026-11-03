@@ -2,6 +2,9 @@
   "functions": {
     "api/ask.js": {
       "includeFiles": "stories.js"
+    },
+    "api/markets.js": {
+      "maxDuration": 15
     }
   },
   "headers": [
