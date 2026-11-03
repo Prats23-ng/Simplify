@@ -5,6 +5,9 @@
     },
     "api/markets.js": {
       "maxDuration": 15
+    },
+    "api/movers.js": {
+      "maxDuration": 30
     }
   },
   "headers": [

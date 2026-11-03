@@ -2,7 +2,7 @@
  *
  * STATUS: live (delayed). Data comes from /api/markets (Yahoo Finance public data, about 15 minutes delayed).
  * Nothing here invents numbers: if a fetch fails it shows the last saved live quote with its real time,
- * or a calm "unavailable" state. (Top movers and market breadth are hidden until a source for them is added.)
+ * or a calm "unavailable" state. Top movers and breadth come from /api/movers and are hidden if that call fails.
  */
 (function () {
   'use strict';
@@ -33,7 +33,11 @@
 
   /* ---------- data source ---------- */
   function defaultFetcher() {
-    return fetch('/api/markets').then(function (r) { if (!r.ok) throw new Error('bad status'); return r.json(); });
+    // Quotes are required; movers/breadth are optional (their cards stay hidden if that call fails).
+    var movers = fetch('/api/movers').then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    return fetch('/api/markets').then(function (r) { if (!r.ok) throw new Error('bad status'); return r.json(); }).then(function (m) {
+      return movers.then(function (mv) { if (mv && Array.isArray(mv.gainers) && Array.isArray(mv.losers)) m.movers = mv; return m; });
+    });
   }
 
   /* ---------- helpers ---------- */

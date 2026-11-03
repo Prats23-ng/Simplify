@@ -926,6 +926,7 @@ function renderChrome(){
   const cs = currentStreak();
   document.getElementById('sidebar-streak').textContent = cs ? `Day ${cs} streak` : 'No streak yet';
   document.getElementById('streak-count').textContent = cs;
+  { const lab = document.querySelector('#streak-chip .chip-label'); if(lab) lab.textContent = cs ? ' day streak' : ' · open a story to start'; }
   document.getElementById('points-count').textContent = state.points;
   document.getElementById('profile-email').textContent = state.profile.email;
   renderAccount();

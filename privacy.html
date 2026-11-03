@@ -34,17 +34,20 @@ a{color:var(--primary)}
   <div class="top"><a class="brand" href="index.html">simplify<i></i></a><a class="alt" href="index.html">Back to home</a></div>
   <div class="draft"><strong>Draft for beta.</strong> This page is a plain-language draft and still needs review by a lawyer before a public launch.</div>
   <h1>Privacy</h1>
-  <p class="upd">Last updated: 13 October 2026</p>
+  <p class="upd">Last updated: 3 November 2026</p>
   <p>simplify is a small beta product. This page explains, in plain words, what we collect and why.</p>
 
   <h2>What we collect</h2>
   <ul>
     <li><strong>Account details</strong>, if you create an account: your email address and a password (stored by our sign-in provider as a secure hash, never in plain text).</li>
     <li><strong>Your setup and progress:</strong> the role, interests, reading time and depth you chose, stories you marked as understood or saved, concepts learned, points and streak.</li>
-    <li><strong>Questions you ask</strong> the AI tutor. Each question, together with the story it refers to, is sent to a third-party AI model provider to produce an answer, and that provider's own policies apply to it. We do not save the text of your questions in your account or our database; your question history stays in your own browser. We only keep a timestamped count of how many questions you ask each day, to apply a daily limit.</li>
+    <li><strong>Questions you ask</strong> the AI tutor. Each question, together with the story it refers to, is sent to Google's Gemini AI service to produce an answer. We use Google's free tier, under which Google's terms allow it to use submitted content to improve its products, so please do not put personal details in your questions. We do not save the text of your questions in your account or our database; your question history stays in your own browser. We only keep a timestamped count, tied to your account, of how many questions you ask each day, to apply a daily limit.</li>
     <li><strong>Anonymous usage events</strong>, for example "opened a story" or "finished onboarding", linked to a random ID kept in your browser, not to your name. If you are signed in, the event may also carry your account ID. We do not use cookies for this and we never record the text of your questions in these events.</li>
     <li><strong>Feedback</strong> you choose to send, plus a contact detail only if you add one.</li>
   </ul>
+
+  <h2>How the news is made</h2>
+  <p>Stories start from the headline and short summary that publishers such as Mint, The Economic Times, The Hindu BusinessLine, the RBI, PIB and SEBI publish in their public feeds. An AI (Google Gemini) drafts a plain-language explainer, and a human editor reviews and approves each story before it appears. Every story links to the original source. Stories can still contain mistakes, so check the original, and nothing here is investment, tax or legal advice. Market data is delayed by about 15 minutes.</p>
 
   <h2>Why</h2>
   <p>To make the product work (save your progress, personalise your brief), to answer your questions, and to learn whether the product is useful so we can improve it.</p>
@@ -53,7 +56,9 @@ a{color:var(--primary)}
   <ul>
     <li>Your account and saved progress are stored with Supabase, our database and sign-in provider.</li>
     <li>The site is hosted on Vercel.</li>
-    <li>Questions to the AI tutor, along with the story text they refer to, are processed by a third-party AI model provider.</li>
+    <li>Questions to the AI tutor, along with the story text they refer to, are processed by Google (Gemini).</li>
+    <li>Market quotes come from Yahoo Finance. Our server fetches them, not your browser, and no information about you is sent.</li>
+    <li>Our hosting and database providers keep standard server logs (such as IP address and time of request) for security and reliability.</li>
     <li>If you use the product as a guest, your progress stays in your own browser only.</li>
   </ul>
 
@@ -63,12 +68,12 @@ a{color:var(--primary)}
   <h2>Your choices</h2>
   <ul>
     <li>In Settings, "Reset everything" clears your progress and preferences from this browser and your account.</li>
-    <li>To delete your account and the data tied to it, or to ask what we hold about you, email <strong>[contact email]</strong>.</li>
+    <li>To delete your account and the data tied to it, or to ask what we hold about you, use the Send feedback button in the app and tell us which email your account uses.</li>
     <li>You can use the product as a guest without giving an email.</li>
   </ul>
 
   <h2>Questions or changes</h2>
-  <p>Contact: <strong>[contact email]</strong>. We will update this page if what we collect changes.</p>
+  <p>Contact: use the Send feedback button in the app (add your email there if you want a reply). We will update this page if what we collect changes.</p>
 
   <p style="margin-top:34px;color:var(--muted);font-size:14px"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="index.html">Home</a></p>
 </div>
